@@ -518,10 +518,6 @@ class Experiment:
             else:
                 counts0, counts_ref0, counts1, counts_ref1, iteration = results.fetch_all()
 
-        # turn off the microwave control
-        self.config.disable_mw1()
-        self.config.disable_mw2()
-
         # store the final results
         self.counts0 = counts0
         self.counts_ref0 = counts_ref0
@@ -530,7 +526,9 @@ class Experiment:
             self.counts_ref1 = counts_ref1
         self.iteration = iteration
 
-        # close the connection
+        # turn off the microwave control, close connection
+        self.config.disable_mw1()
+        self.config.disable_mw2()
         qm.close()
 
     def save(self, filename=None):

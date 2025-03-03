@@ -36,7 +36,7 @@ class NVExperiment(Experiment):
         self.x_axis_label = "MW frequency [MHz]"
         self.plot_title = "CW ODMR"
 
-    def setup_time_rabi(self, t_vec=np.arange(4, 200, 2)):
+    def setup_time_rabi(self, t_vec=np.arange(16, 200, 4)):
         """
         Sequence of commands to run a Rabi experiment sweeping time of MW.
 
