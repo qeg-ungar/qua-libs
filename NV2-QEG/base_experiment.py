@@ -76,9 +76,9 @@ class Experiment:
         Args:
             name (string): Name of the pulse. 8 predefined pulses are avaialble,
                 "+/-" * "x/y" * "90/180", eg "y180" or "-x90"
-            element (string): Channel to play the pulse on, like "NV" or "C13" in the config
+            element (string): Channel to play the pulse on, like "NV" or "C13", must be defined in the config
             amplitude (float, Iterable): amplitude of pulse, defaults to 1
-            length (int, Iterable): time of the pulse, default to configs x180_len_NV
+            length (int, Iterable): time of the pulse, default to config's `x180_len_NV`, in ns
             cycle (bool): If True, the pulse is inverted during the second cycle performing non-contrast measurements.
         """
         length = length if length is not None else self.config.x180_len_NV
@@ -91,12 +91,12 @@ class Experiment:
         if isinstance(amplitude, Iterable):
             command["scale"] = self.update_loop(amplitude)
             self.use_fixed = True
-            command["length"] = length
+            command["length"] = length // 4
         elif isinstance(length, Iterable):
-            command["scale"] = self.update_loop(length)
+            command["scale"] = self.update_loop(np.array(length) // 4)
             command["amplitude"] = amplitude
         else:
-            command["length"] = length
+            command["length"] = length // 4
             command["amplitude"] = amplitude
         self.commands.append(command)
 
@@ -114,12 +114,12 @@ class Experiment:
         if isinstance(amplitude, Iterable):
             command["scale"] = self.update_loop(amplitude)
             self.use_fixed = True
-            command["length"] = length
+            command["length"] = length // 4
         elif isinstance(length, Iterable):
-            command["scale"] = self.update_loop(length)
+            command["scale"] = self.update_loop(np.array(length) // 4)
             command["amplitude"] = amplitude
         else:
-            command["length"] = length
+            command["length"] = length // 4
             command["amplitude"] = amplitude
         self.commands.append(command)
 
@@ -128,9 +128,10 @@ class Experiment:
         Adds a type "measure_delay" command to the experiment.
 
         Args:
-            length (int): time of measurement acquisition, defaults to the config's `meas_len_1`
+            length (int): time of measurement acquisition in ns, defaults to the config's `meas_len_1`
         """
         self.measure_delay = length if length is not None else self.config.meas_len_1
+        self.measure_delay = self.measure_delay // 4
 
     def add_laser(self, mode="laser_ON", channel="AOM1", length=None):
         """
@@ -139,9 +140,10 @@ class Experiment:
         Args:
             mode (string): Mode of the laser, like "laser_ON" or "laser_OFF"
             channel (string): Channel to play the laser on, like "AOM1" in the config
-            length (int): time of the laser pulse. Defaults to the config's `initialization_len_1`
+            length (int): time of the laser pulse in ns. Defaults to the config's `initialization_len_1`
         """
         length = length if length is not None else self.config.initialization_len_1
+        length = length // 4
         self.commands.append({"type": "laser", "mode": mode, "channel": channel, "length": length})
 
         self.laser_channel = channel
@@ -157,13 +159,13 @@ class Experiment:
         Adds a type "wait" command to the experiment.
 
         Args:
-            length (int, Iterable): time to wait
+            length (int, Iterable): Time to wait in ns, or an array of wait-times in ns to define a loop
         """
         if isinstance(length, Iterable):
-            scale = self.update_loop(length)
+            scale = self.update_loop(np.array(length) // 4)
             self.commands.append({"type": "wait", "scale": scale})
         else:
-            self.commands.append({"type": "wait", "length": length})
+            self.commands.append({"type": "wait", "length": length // 4})
 
     def add_measure(self, mode="readout", channel="SPCM1", meas_len=None):
         """
@@ -172,9 +174,10 @@ class Experiment:
         Args:
             mode (string): Measurement mode, like "readout" or "long_readout"
             channel (string): Channel to measure on, like "SPCM1" in the config
-            meas_len (int): time of measurement acquisition. Defaults to the config's `meas_len_1`
+            meas_len (int): Time of measurement acquisition in ns. Defaults to the config's `meas_len_1`
         """
         meas_len = meas_len if meas_len is not None else self.config.meas_len_1
+        meas_len = meas_len // 4
         self.commands.append({"type": "measure", "channel": channel, "mode": mode, "meas_len": meas_len})
 
         if self.measure_len is None:
@@ -190,7 +193,7 @@ class Experiment:
 
         Args:
             element (string): Name of the element to update the frequency of
-            freq_list (Iterable): Array of frequencies to update the element to
+            freq_list (Iterable): Array of frequencies to update the element to, in Hz
         """
         self.commands.append({"type": "update_frequency", "element": element})
         self.update_loop(freq_list)
@@ -252,32 +255,33 @@ class Experiment:
             qua command: The QUA command
         """
         scale = command.get("scale", 1)
+        svar = (scale * var) if scale != 1 else var
         match command["type"]:
             case "update_frequency":
-                update_frequency(command["element"], var)
+                update_frequency(command["element"], svar)
 
             case "pulse":
-                amplitude = command.get("amplitude", var * scale)
-                length = command.get("length", var * scale)
+                amplitude = command.get("amplitude", svar)
+                length = command.get("length", svar)
                 name = command["name"]
                 if invert and command["cycle"]:
                     if name[0] == "-":
                         name = name[1:]
                     else:
                         name = "-" + name
-                play(name * amp(amplitude), command["element"], duration=length * u.ns)
+                play(name * amp(amplitude), command["element"], duration=length)
 
             case "cw":
-                amplitude = command.get("amplitude", var * scale)
-                length = command.get("length", var * scale)
-                play("cw" * amp(amplitude), command["element"], duration=length * u.ns)
+                amplitude = command.get("amplitude", svar)
+                length = command.get("length", svar)
+                play("cw" * amp(amplitude), command["element"], duration=length)
 
             case "wait":
-                duration = command.get("length", var * scale)
-                wait(duration * u.ns)
+                duration = command.get("length", svar)
+                wait(duration)
 
             case "laser":
-                play(command["mode"], command["channel"], duration=command["length"] * u.ns)
+                play(command["mode"], command["channel"], duration=command["length"])
 
             case "measure":
                 measure(
@@ -306,8 +310,8 @@ class Experiment:
         align()
 
         if self.measure_delay > 0:
-            wait(self.measure_delay * u.ns, self.measure_channel)
-            play("laser_ON", self.laser_channel, duration=self.measure_len * u.ns)
+            wait(self.measure_delay, self.measure_channel)
+            play("laser_ON", self.laser_channel, duration=self.measure_len)
         else:
             play("laser_ON", self.laser_channel)
         measure(self.measure_mode, self.measure_channel, None, time_tagging.analog(times, self.measure_len, counts))
@@ -393,14 +397,17 @@ class Experiment:
 
         return experiment
 
-    def simulate_experiment(self, sim_length=10_000, n_avg=100_000, measure_contrast=True, **kwargs):
+    def simulate_experiment(self, sim_length=10_000, n_avg=100_000, measure_contrast=True):
         """
-        Simulates the experiment using the configuration defined by this class.
+        Simulates the experiment using the configured experiment defined by this class based on the current
+        config defined by this instance's `config` attribute. The simulation returns the generated waveforms
+        of the experiment up to the duration `sim_length` in ns. Useful for checking the timings before running
+        on hardware.
 
         Parameters:
+            sim_length (int, optional): The duration of the simulation in ns. Defaults to 10_000.
             n_avg (int, optional): The number of averages per point. Defaults to 100_000.
             measure_contrast (bool): If True, only the |0> state is measured, if False, both |0> and |1> are measured.
-            kwargs (dict): Additional parameters to pass to the simulation
 
         Raises:
             ValueError: Throws an error if insufficient details about the experiment are defined.
@@ -408,10 +415,10 @@ class Experiment:
         if len(self.commands) == 0:
             raise ValueError("No commands have been added to the experiment.")
         if self.var_vec is None:
-            raise ValueError("No variable vector has been defined.")
+            raise ValueError("No inner loop has been defined, invalid sweep.")
 
         expt = self.create_experiment(n_avg=n_avg, measure_contrast=measure_contrast)
-        simulation_config = SimulationConfig(duration=sim_length)  # In clock cycles = 4ns
+        simulation_config = SimulationConfig(duration=sim_length // 4)
         job = self.config.qmm.simulate(self.config.config, expt, simulation_config)
         job.get_simulated_samples().con1.plot()
         plt.show()
@@ -421,13 +428,13 @@ class Experiment:
         """
         Executes the experiment using the configuration defined by this class. The results are
         stored in the class instance. The results will be visualized live, but this can be
-        disabled by setting `live=False` as a keyword arguments. For each value in the variable
-        `var_vec`, the experiment will be run `n_avg` times.
+        disabled by setting `live_plot=False`. For each value in the variable `var_vec`, the experiment
+        will be run `n_avg` times.
 
         Parameters:
             n_avg (int, optional): The number of averages per point. Defaults to 100_000.
             measure_contrast (bool): If True, only the |0> state is measured, if False, both |0> and |1> are measured.
-            kwargs (dict): Additional parameters to pass to the simulation
+            live_plot (bool): If True, the results will be plotted live as they are generated. Defaults to True.
 
         Raises:
             ValueError: Throws an error if insufficient details about the experiment are defined.
@@ -522,6 +529,9 @@ class Experiment:
             self.counts1 = counts1
             self.counts_ref1 = counts_ref1
         self.iteration = iteration
+
+        # close the connection
+        qm.close()
 
     def save(self, filename=None):
         """
