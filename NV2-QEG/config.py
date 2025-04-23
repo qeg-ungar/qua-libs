@@ -54,13 +54,22 @@ class ConfigNV:
         if mw2:
             self.SG384_X = SG384Control(self.mw_port2)
 
+    def enable_mw(self):
+        """
+        Checks if the microwave sources are connected and enables them.
+        """
+        if self.SG384_NV is not None:
+            self.enable_mw1()
+        if self.SG384_X is not None:
+            self.enable_mw2()
+
     def enable_mw1(self):
         """
         Enables the microwave source for the NV center.
         """
         self.SG384_NV.set_amplitude(self.NV_LO_amp)
         self.SG384_NV.set_frequency(self.NV_LO_freq)
-        self.SG384_NV.rf_on()
+        self.SG384_NV.ntype_on()
         self.SG384_NV.do_set_Modulation_State("ON")
         self.SG384_NV.do_set_modulation_type("IQ")
 
@@ -68,7 +77,7 @@ class ConfigNV:
         """
         Disables the microwave source for the NV center.
         """
-        self.SG384_NV.rf_off()
+        self.SG384_NV.ntype_off()
 
     def enable_mw2(self):
         """
@@ -76,7 +85,7 @@ class ConfigNV:
         """
         self.SG384_X.set_amplitude(self.X_LO_amp)
         self.SG384_X.set_frequency(self.X_LO_freq)
-        self.SG384_X.rf_on()
+        self.SG384_X.ntype_on()
         self.SG384_X.do_set_Modulation_State("ON")
         self.SG384_X.do_set_modulation_type("IQ")
 
@@ -84,7 +93,7 @@ class ConfigNV:
         """
         Disables the microwave source for the dark spins.
         """
-        self.SG384_X.rf_off()
+        self.SG384_X.ntype_off()
 
     def save(self, filename=None):
         """
@@ -162,16 +171,16 @@ class ConfigNV:
         self.mw_port2 = "TCPIP0::18.25.11.5::5025::SOCKET"
 
         # Frequencies
-        self.NV_IF_freq = 40 * u.MHz
-        self.NV_LO_freq = 2.83 * u.GHz
-        self.NV_LO_amp = -19  # in dBm
-        self.X_LO_amp = -19
-        self.X_LO_freq = 2.83 * u.GHz
+        self.NV_IF_freq = 80 * u.MHz
+        self.NV_LO_freq = 1.765 * u.GHz
+        self.NV_LO_amp = -24  # in dBm
+        self.X_LO_amp = -23
+        self.X_LO_freq = 0.943 * u.GHz
 
         # Pulses lengths
         self.initialization_len_1 = 2000 * u.ns
-        self.meas_len_1 = 400 * u.ns
-        self.long_meas_len_1 = 5_000 * u.ns
+        self.meas_len_1 = 600 * u.ns
+        self.long_meas_len_1 = 10_000 * u.ns
 
         self.initialization_len_2 = 3000 * u.ns
         self.meas_len_2 = 500 * u.ns
@@ -179,14 +188,14 @@ class ConfigNV:
 
         # Relaxation time from the metastable state to the ground state after during initialization
         self.relaxation_time = 300 * u.ns
-        self.wait_for_initialization = 2 * self.relaxation_time
+        self.wait_for_initialization = 2 * self.relaxation_time 
 
         # MW parameters
-        self.mw_amp_NV = 0.2  # in units of volts
-        self.mw_len_NV = 100 * u.ns
+        self.mw_amp_NV = 0.25  # in units of volts
+        self.mw_len_NV = 500 * u.ns
 
-        self.x180_amp_NV = 0.1  # in units of volts
-        self.x180_len_NV = 32 * u.ns  # in units of ns
+        self.x180_amp_NV = 0.216 / 2  # in units of volts
+        self.x180_len_NV = 2 * 500 * u.ns  # in units of ns
 
         self.x90_amp_NV = self.x180_amp_NV / 2  # in units of volts
         self.x90_len_NV = self.x180_len_NV  # in units of ns
@@ -201,17 +210,17 @@ class ConfigNV:
         self.signal_threshold_2 = -2_000  # ADC untis, to convert to volts divide by 4096 (12 bit ADC)
 
         # Delays
-        self.detection_delay_1 = 324 * u.ns
+        self.detection_delay_1 = 292 * u.ns
         self.detection_delay_2 = 80 * u.ns
-        self.laser_delay_1 = 190 * u.ns
+        self.laser_delay_1 = 140 * u.ns
         self.laser_delay_2 = 0 * u.ns
         self.mw_delay = 0 * u.ns
         self.rf_delay = 0 * u.ns
         self.wait_between_runs = 500 * u.ns
 
         # IQ imbalance params
-        self.g = 0.0
-        self.phi = 0.0
+        self.g = 0.03
+        self.phi = -0.05
 
     def update_config(self):
         """
@@ -222,10 +231,12 @@ class ConfigNV:
             "version": 1,
             "controllers": {
                 "con1": {
+                    "type": "opx1",
                     "analog_outputs": {
-                        1: {"offset": 0.0, "delay": self.mw_delay},  # NV I
-                        2: {"offset": 0.0, "delay": self.mw_delay},  # NV Q
-                        3: {"offset": 0.0, "delay": self.rf_delay},  # RF
+                        1: {"offset": -0.02, "delay": self.mw_delay},  # NV I calibrated 20241029
+                        2: {"offset": -0.02, "delay": self.mw_delay},  # NV Q calibrated 20241029
+                        3: {"offset": -0.005, "delay": self.mw_delay},  # X I #calibrated 20241014
+                        4: {"offset": -0.023, "delay": self.mw_delay},  # X Q #calibrated 20241014
                     },
                     "digital_outputs": {
                         1: {},  # AOM/Laser
@@ -234,7 +245,7 @@ class ConfigNV:
                         4: {},  # SPCM2 - indicator
                     },
                     "analog_inputs": {
-                        1: {"offset": 0},  # SPCM1
+                        1: {"offset": 0.004},  # SPCM1
                         2: {"offset": 0},  # SPCM2
                     },
                 }
@@ -429,7 +440,7 @@ class ConfigNV:
                     {
                         "intermediate_frequency": self.NV_IF_freq,
                         "lo_frequency": self.NV_LO_freq,
-                        "correction": IQ_imbalance(self.g, self.phi),
+                        "correction": IQ_imbalance(self.g, self.phi),  # calibrated 20241029
                     },
                 ],
             },

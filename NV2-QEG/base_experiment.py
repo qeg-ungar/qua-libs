@@ -33,7 +33,7 @@ from qualang_tools.results import progress_counter, fetching_tool
 from qualang_tools.loops import from_array
 
 # plotting
-matplotlib.use("TkAgg")
+matplotlib.use("tkAgg")
 
 
 class Experiment:
@@ -64,6 +64,10 @@ class Experiment:
 
         # store the config
         self.config = config if config is not None else ConfigNV()
+
+        # containers for experimental delays
+        self.wait_between_runs = 0
+        self.wait_for_initialization = 0
 
         # saving defaults
         self.file_prefix = "expt"
@@ -177,7 +181,7 @@ class Experiment:
             meas_len (int): Time of measurement acquisition in ns. Defaults to the config's `meas_len_1`
         """
         meas_len = meas_len if meas_len is not None else self.config.meas_len_1
-        meas_len = meas_len // 4
+        #meas_len = meas_len // 4
         self.commands.append({"type": "measure", "channel": channel, "mode": mode, "meas_len": meas_len})
 
         if self.measure_len is None:
@@ -219,10 +223,9 @@ class Experiment:
         """
         if np.all(var_vec == 0):
             raise ValueError("Variable vector cannot be all zeros.")
-
         if self.var_vec is None:
-            self.var_vec = var_vec
-            return 1
+           self.var_vec = var_vec
+           return 1
 
         two = self.var_vec
         if np.dot(var_vec, two) * np.dot(two, var_vec) == np.dot(var_vec, var_vec) * np.dot(two, two):
@@ -243,6 +246,15 @@ class Experiment:
         self.initialize = True
         self.laser_channel = channel
 
+    def _update_delays(self):
+        """
+        Helper function to store some experimental delays in the class instance. This is used to convert the delays
+        from nanoseconds to clock cycles. The delays are defined in the config file. This function is called before the experiment
+        is executed, and should save some time in the QUA program by avoiding unnecessary calculations.
+        """
+        self.wait_between_runs = self.config.wait_between_runs // 4
+        self.wait_for_initialization = self.config.wait_for_initialization // 4
+
     def _translate_command(self, command, var, times, counts, counts_st, invert):
         """
         Helper function whcih translates a command dictionary into a QUA command. Plays qua commands, can only
@@ -254,15 +266,15 @@ class Experiment:
         Returns:
             qua command: The QUA command
         """
-        scale = command.get("scale", 1)
-        svar = (scale * var) if scale != 1 else var
+        #scale = command.get("scale", 1)
+        #svar = (scale * var) if scale != 1 else var
         match command["type"]:
             case "update_frequency":
-                update_frequency(command["element"], svar)
+                update_frequency(command["element"], var)
 
             case "pulse":
-                amplitude = command.get("amplitude", svar)
-                length = command.get("length", svar)
+                amplitude = command.get("amplitude", var)
+                length = command.get("length", var)
                 name = command["name"]
                 if invert and command["cycle"]:
                     if name[0] == "-":
@@ -272,12 +284,12 @@ class Experiment:
                 play(name * amp(amplitude), command["element"], duration=length)
 
             case "cw":
-                amplitude = command.get("amplitude", svar)
-                length = command.get("length", svar)
+                amplitude = command.get("amplitude", var)
+                length = command.get("length", var)
                 play("cw" * amp(amplitude), command["element"], duration=length)
 
             case "wait":
-                duration = command.get("length", svar)
+                duration = command.get("length", var)
                 wait(duration)
 
             case "laser":
@@ -302,7 +314,7 @@ class Experiment:
 
         """
 
-        wait(self.config.wait_between_runs)
+        wait(self.wait_between_runs)
 
         align()
 
@@ -318,7 +330,7 @@ class Experiment:
 
         save(counts, counts_st)  # save counts
 
-        wait(self.config.wait_between_runs, self.laser_channel)
+        wait(self.wait_between_runs, self.laser_channel)
 
     def create_experiment(self, n_avg, measure_contrast):
         """
@@ -333,6 +345,8 @@ class Experiment:
         Returns:
             program: The QUA program for the experiment defined by this class's commands.
         """
+        # read in some experimental delays and convert them to clock-cycles
+        self._update_delays()
 
         with program() as experiment:
 
@@ -362,7 +376,7 @@ class Experiment:
             if self.initialize:
                 play("laser_ON", self.laser_channel)
 
-                wait(self.config.wait_for_initialization, self.laser_channel)
+                wait(self.wait_for_initialization, self.laser_channel)
 
             with for_(n, 0, n < n_avg, n + 1):  # averaging loop
                 with for_(*from_array(var, self.var_vec)):  # scanning loop
@@ -450,11 +464,10 @@ class Experiment:
         qm = self.config.qmm.open_qm(self.config.config)
 
         # turn on the microwave control
-        self.config.enable_mw1()
-        self.config.enable_mw2()
+        self.config.enable_mw()
 
         # Send the QUA program to the OPX, which compiles and executes it
-        job = qm.execute(expt)
+        self.job = qm.execute(expt)
 
         # set the data lists being generated to later fetch
         data_list = ["counts0", "counts_ref0"]
@@ -464,12 +477,12 @@ class Experiment:
 
         mode = "live" if live_plot else "wait_for_all"
         # create the fetch tool
-        results = fetching_tool(job, data_list=data_list, mode=mode)
+        results = fetching_tool(self.job, data_list=data_list, mode=mode)
 
         if live_plot:
 
             fig = plt.figure()
-            interrupt_on_close(fig, job)  # Interrupts the job when closing the figure
+            interrupt_on_close(fig, self.job)  # Interrupts the job when closing the figure
 
             while results.is_processing():
                 # Fetch results
@@ -530,6 +543,42 @@ class Experiment:
         self.config.disable_mw1()
         self.config.disable_mw2()
         qm.close()
+        if live_plot:
+            plt.close(fig)
+        
+        # plot the final results
+        plt.figure()
+        plt.plot(
+            self.var_vec * self.x_axis_scale,
+            self.counts0 / 1000 / (self.measure_len * 1e-9),
+            label="sig0",
+        )
+        plt.plot(
+            self.var_vec * self.x_axis_scale,
+            self.counts_ref0 / 1000 / (self.measure_len * 1e-9),
+            label="ref0",
+        )
+
+        if not measure_contrast:
+            plt.plot(
+                self.var_vec * self.x_axis_scale,
+                self.counts1 / 1000 / (self.measure_len * 1e-9),
+                label="sig1",
+            )
+            plt.plot(
+                self.var_vec * self.x_axis_scale,
+                self.counts_ref1 / 1000 / (self.measure_len * 1e-9),
+                label="ref1",
+            )
+
+        plt.xlabel(self.x_axis_label)
+        plt.ylabel(self.y_axis_label)
+        plt.title(self.plot_title)
+        plt.legend()
+        plt.show()
+
+
+
 
     def save(self, filename=None):
         """
@@ -540,7 +589,7 @@ class Experiment:
                 none is provided
         """
         filename = (
-            self.file_prefix + f"_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json" if filename is None else filename
+            #self.file_prefix + f"_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json" if filename is None else filename #AU 20250418 commented out since was throwing error
         )
         try:
             with open(filename, "w") as f:

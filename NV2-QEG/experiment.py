@@ -36,44 +36,44 @@ class NVExperiment(Experiment):
         self.x_axis_label = "MW frequency [MHz]"
         self.plot_title = "CW ODMR"
 
-    def setup_time_rabi(self, t_vec=np.arange(16, 200, 4)):
-        """
-        Sequence of commands to run a Rabi experiment sweeping time of MW.
+    # def setup_time_rabi(self, t_vec=np.arange(16, 200, 4)):
+    #     """
+    #     Sequence of commands to run a Rabi experiment sweeping time of MW.
 
-        Args:
-            t_vec (array): Array of pulse durations in clock cycles (4ns)
-        """
+    #     Args:
+    #         t_vec (array): Array of pulse durations in clock cycles (4ns)
+    #     """
 
-        self.add_initialization(channel="AOM1")
-        self.add_pulse("x180", "NV", amplitude=1, length=t_vec)
-        self.add_align()
-        self.add_laser(mode="laser_ON", channel="AOM1")
-        self.add_measure(channel="SPCM1")
+    #     self.add_initialization(channel="AOM1")
+    #     self.add_pulse("x180", "NV", amplitude=1, length=t_vec)
+    #     self.add_align()
+    #     self.add_laser(mode="laser_ON", channel="AOM1")
+    #     self.add_measure(channel="SPCM1")
 
-        # for plotting results
-        self.file_prefix = "time_rabi"
-        self.x_axis_scale = 4
-        self.x_axis_label = "Rabi pulse duration [ns]"
-        self.plot_title = "Time Rabi"
+    #     # for plotting results
+    #     self.file_prefix = "time_rabi"
+    #     self.x_axis_scale = 4
+    #     self.x_axis_label = "Rabi pulse duration [ns]"
+    #     self.plot_title = "Time Rabi"
 
-    def setup_power_rabi(self, a_vec=np.arange(0.1, 2, 0.02)):
-        """
-        Sequence of commands to run a Rabi experiment sweeping time of MW.
+    # def setup_power_rabi(self, a_vec=np.arange(0.1, 2, 0.02)):
+    #     """
+    #     Sequence of commands to run a Rabi experiment sweeping time of MW.
 
-        Args:
-            a_vec (array): Array of pulse voltage scalings in [a.u.]
-        """
+    #     Args:
+    #         a_vec (array): Array of pulse voltage scalings in [a.u.]
+    #     """
 
-        self.add_initialization(channel="AOM1")
-        self.add_pulse("x180", "NV", amplitude=a_vec, length=self.config.x180_len_NV)
-        self.add_align()
-        self.add_laser(mode="laser_ON", channel="AOM1")
-        self.add_measure(channel="SPCM1")
+    #     self.add_initialization(channel="AOM1")
+    #     self.add_pulse("x180", "NV", amplitude=a_vec, length=self.config.x180_len_NV)
+    #     self.add_align()
+    #     self.add_laser(mode="laser_ON", channel="AOM1")
+    #     self.add_measure(channel="SPCM1")
 
-        # for plotting results
-        self.x_axis_scale = self.config.x180_amp_NV
-        self.x_axis_label = "Rabi pulse amplitude [V]"
-        self.plot_title = "Power Rabi"
+    #     # for plotting results
+    #     self.x_axis_scale = self.config.x180_amp_NV
+    #     self.x_axis_label = "Rabi pulse amplitude [V]"
+    #     self.plot_title = "Power Rabi"
 
     # def setup_time_rabi(self, t_vec=np.arange(4, 40, 4)):
     #     """
@@ -90,22 +90,22 @@ class NVExperiment(Experiment):
     #     self.x_axis_label = "Rabi pulse duration [ns]"
     #     self.plot_title = "Time Rabi"
 
-    # def setup_power_rabi(self, a_vec=np.arange(0.1, 2, 0.02)):
-    #     """
-    #     Sequence of commands to run a Rabi experiment sweeping time of MW.
+    def setup_power_rabi(self, a_vec=np.arange(0.1, 2, 0.02)):
+        """
+        Sequence of commands to run a Rabi experiment sweeping amplitude of MW pulse.
 
-    #     Args:
-    #         t_vec (array): Array of pulse durations in clock cycles (4ns)
-    #     """
+        Args:
+            a_vec (array): Array of pulse voltage scalings in [a.u.]
+        """
 
-    #     self.rabi_sequence(amplitude=a_vec)
+        self.rabi_sequence(amplitude=a_vec)
 
-    #     # for plotting results
-    #     self.x_axis_scale = x180_amp_NV
-    #     self.x_axis_label = "Rabi pulse amplitude [V]"
-    #     self.plot_title = "Power Rabi"
+        # for plotting results
+        self.x_axis_scale = self.config.x180_amp_NV
+        self.x_axis_label = "Rabi pulse amplitude [V]"
+        self.plot_title = "Power Rabi"
 
-    def setup_pulsed_odmr(self, f_vec=np.arange(60, 100, 1) * u.MHz):
+    def setup_pulsed_odmr(self, f_vec=np.arange(60, 100, 1) * u.MHz, amplitude=1):
         """
         Sequence of commands to run a Rabi experiment sweeping time of MW.
 
@@ -113,7 +113,7 @@ class NVExperiment(Experiment):
             t_vec (array): Array of pulse durations in clock cycles (4ns)
         """
 
-        self.rabi_sequence(frequency=f_vec)
+        self.rabi_sequence(frequency=f_vec, amplitude=amplitude)
 
         # for plotting results
         self.x_axis_scale = 1 / u.MHz
