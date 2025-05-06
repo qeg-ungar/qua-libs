@@ -26,6 +26,7 @@ from qm.qua import (
     stream_processing,
     declare_stream,
     for_,
+    for_each_,
     fixed,
 )
 from qualang_tools.plot import interrupt_on_close
@@ -181,7 +182,7 @@ class Experiment:
             meas_len (int): Time of measurement acquisition in ns. Defaults to the config's `meas_len_1`
         """
         meas_len = meas_len if meas_len is not None else self.config.meas_len_1
-        #meas_len = meas_len // 4
+        # meas_len = meas_len // 4
         self.commands.append({"type": "measure", "channel": channel, "mode": mode, "meas_len": meas_len})
 
         if self.measure_len is None:
@@ -224,8 +225,8 @@ class Experiment:
         if np.all(var_vec == 0):
             raise ValueError("Variable vector cannot be all zeros.")
         if self.var_vec is None:
-           self.var_vec = var_vec
-           return 1
+            self.var_vec = var_vec
+            return 1
 
         two = self.var_vec
         if np.dot(var_vec, two) * np.dot(two, var_vec) == np.dot(var_vec, var_vec) * np.dot(two, two):
@@ -266,8 +267,8 @@ class Experiment:
         Returns:
             qua command: The QUA command
         """
-        #scale = command.get("scale", 1)
-        #svar = (scale * var) if scale != 1 else var
+        # scale = command.get("scale", 1)
+        # svar = (scale * var) if scale != 1 else var
         match command["type"]:
             case "update_frequency":
                 update_frequency(command["element"], var)
@@ -379,7 +380,7 @@ class Experiment:
                 wait(self.wait_for_initialization, self.laser_channel)
 
             with for_(n, 0, n < n_avg, n + 1):  # averaging loop
-                with for_(*from_array(var, self.var_vec)):  # scanning loop
+                with for_each_(var, self.var_vec):  # scanning loop
 
                     # do the sequence as defined by the commands, measure |0>
                     for command in self.commands:
@@ -486,42 +487,55 @@ class Experiment:
 
             while results.is_processing():
                 # Fetch results
+
                 if measure_contrast:
                     counts0, counts_ref0, iteration = results.fetch_all()
+                    progress_counter(iteration, n_avg, start_time=results.get_start_time())
+                    self.plot_results(live_plot=True, counts0=counts0, counts_ref0=counts_ref0)
                 else:
                     counts0, counts_ref0, counts1, counts_ref1, iteration = results.fetch_all()
+                    progress_counter(iteration, n_avg, start_time=results.get_start_time())
+                    self.plot_results(
+                        live_plot=True,
+                        counts0=counts0,
+                        counts_ref0=counts_ref0,
+                        counts1=counts1,
+                        counts_ref1=counts_ref1,
+                    )
+
                 # Progress bar
-                progress_counter(iteration, n_avg, start_time=results.get_start_time())
+
                 # Plot data
-                plt.cla()
-                plt.plot(
-                    self.var_vec * self.x_axis_scale,
-                    counts0 / 1000 / (self.measure_len * 1e-9),
-                    label="sig0",
-                )
-                plt.plot(
-                    self.var_vec * self.x_axis_scale,
-                    counts_ref0 / 1000 / (self.measure_len * 1e-9),
-                    label="ref0",
-                )
 
-                if not measure_contrast:
-                    plt.plot(
-                        self.var_vec * self.x_axis_scale,
-                        counts1 / 1000 / (self.measure_len * 1e-9),
-                        label="sig1",
-                    )
-                    plt.plot(
-                        self.var_vec * self.x_axis_scale,
-                        counts_ref1 / 1000 / (self.measure_len * 1e-9),
-                        label="ref1",
-                    )
+                # plt.cla()
+                # plt.plot(
+                #     self.var_vec * self.x_axis_scale,
+                #     counts0 / 1000 / (self.measure_len * 1e-9),
+                #     label="sig0",
+                # )
+                # plt.plot(
+                #     self.var_vec * self.x_axis_scale,
+                #     counts_ref0 / 1000 / (self.measure_len * 1e-9),
+                #     label="ref0",
+                # )
 
-                plt.xlabel(self.x_axis_label)
-                plt.ylabel(self.y_axis_label)
-                plt.title(self.plot_title)
-                plt.legend()
-                plt.pause(0.1)
+                # if not measure_contrast:
+                #     plt.plot(
+                #         self.var_vec * self.x_axis_scale,
+                #         counts1 / 1000 / (self.measure_len * 1e-9),
+                #         label="sig1",
+                #     )
+                #     plt.plot(
+                #         self.var_vec * self.x_axis_scale,
+                #         counts_ref1 / 1000 / (self.measure_len * 1e-9),
+                #         label="ref1",
+                #     )
+
+                # plt.xlabel(self.x_axis_label)
+                # plt.ylabel(self.y_axis_label)
+                # plt.title(self.plot_title)
+                # plt.legend()
+                # plt.pause(0.1)
         else:
             # Get results from QUA program
             results.wait_for_all_values()
@@ -542,32 +556,81 @@ class Experiment:
         # turn off the microwave control, close connection
         self.config.disable_mw1()
         self.config.disable_mw2()
-        qm.close()
+
         if live_plot:
             plt.close(fig)
-        
+        #qm.close()
         # plot the final results
-        plt.figure()
+        self.plot_results(live_plot=False)
+        # plt.figure()
+        # plt.plot(
+        #     self.var_vec * self.x_axis_scale,
+        #     self.counts0 / 1000 / (self.measure_len * 1e-9),
+        #     label="sig0",
+        # )
+        # plt.plot(
+        #     self.var_vec * self.x_axis_scale,
+        #     self.counts_ref0 / 1000 / (self.measure_len * 1e-9),
+        #     label="ref0",
+        # )
+
+        # if not measure_contrast:
+        #     plt.plot(
+        #         self.var_vec * self.x_axis_scale,
+        #         self.counts1 / 1000 / (self.measure_len * 1e-9),
+        #         label="sig1",
+        #     )
+        #     plt.plot(
+        #         self.var_vec * self.x_axis_scale,
+        #         self.counts_ref1 / 1000 / (self.measure_len * 1e-9),
+        #         label="ref1",
+        #     )
+
+        # plt.xlabel(self.x_axis_label)
+        # plt.ylabel(self.y_axis_label)
+        # plt.title(self.plot_title)
+        # plt.legend()
+        # plt.show()
+
+    def plot_results(self, live_plot=True, **kwargs):
+        """
+        Plots the results of the experiment. This is used to plot the results after the experiment has been run.
+        The results are stored in the class instance. The results will be visualized live, but this can be
+        disabled by setting `live_plot=False`. For each value in the variable `var_vec`, the experiment
+        will be run `n_avg` times.
+
+        # plot_results(counts0=(1,2,3), counts_ref0=counts_ref0, counts1=counts1, counts_ref1=counts_ref1)
+        """
+        if live_plot:
+            plt.cla()
+        else:
+            plt.figure()
+
+        counts0 = kwargs.get("counts0", self.counts0)
+        counts_ref0 = kwargs.get("counts_ref0", self.counts_ref0)
+        counts1 = kwargs.get("counts1", self.counts1)
+        counts_ref1 = kwargs.get("counts_ref1", self.counts_ref1)
+
         plt.plot(
             self.var_vec * self.x_axis_scale,
-            self.counts0 / 1000 / (self.measure_len * 1e-9),
+            counts0 / 1000 / (self.measure_len * 1e-9),
             label="sig0",
         )
         plt.plot(
             self.var_vec * self.x_axis_scale,
-            self.counts_ref0 / 1000 / (self.measure_len * 1e-9),
+            counts_ref0 / 1000 / (self.measure_len * 1e-9),
             label="ref0",
         )
 
-        if not measure_contrast:
+        if counts1 is not None:
             plt.plot(
                 self.var_vec * self.x_axis_scale,
-                self.counts1 / 1000 / (self.measure_len * 1e-9),
+                counts1 / 1000 / (self.measure_len * 1e-9),
                 label="sig1",
             )
             plt.plot(
                 self.var_vec * self.x_axis_scale,
-                self.counts_ref1 / 1000 / (self.measure_len * 1e-9),
+                counts_ref1 / 1000 / (self.measure_len * 1e-9),
                 label="ref1",
             )
 
@@ -575,10 +638,8 @@ class Experiment:
         plt.ylabel(self.y_axis_label)
         plt.title(self.plot_title)
         plt.legend()
-        plt.show()
-
-
-
+        plt.pause(0.1)
+        plt.show(block=False)
 
     def save(self, filename=None):
         """
@@ -589,7 +650,7 @@ class Experiment:
                 none is provided
         """
         filename = (
-            #self.file_prefix + f"_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json" if filename is None else filename #AU 20250418 commented out since was throwing error
+            # self.file_prefix + f"_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json" if filename is None else filename #AU 20250418 commented out since was throwing error
         )
         try:
             with open(filename, "w") as f:
