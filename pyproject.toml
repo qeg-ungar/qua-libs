@@ -4,13 +4,12 @@ version = "0.0.0"
 description = "A collection of examples to be used with QUA language"
 authors = ["Quantum Machines <info@quantum-machines.co>"]
 license = "BSD-3-Clause"
-package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.12"
 qm-qua = {version = ">=1.2.0", allow-prereleases = true}
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 black = "^24.3.0"
 poethepoet = "^0.10.0"
 flake8 = "^3.9.1"
