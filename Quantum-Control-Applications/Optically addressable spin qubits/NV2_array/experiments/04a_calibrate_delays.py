@@ -33,10 +33,10 @@ time_bin = 0.5 if version_tuple >= (3, 5, 0) else 1.0
 ##################
 # Parameters Definition
 laser_delay = 500  # delay before laser [ns]
-initialization_len = 2_000  # laser duration length [ns]
-mw_len = 1_000  # MW duration length [ns]
+initialization_len = 3_000  # laser duration length [ns]
+mw_len = 5_00  # MW duration length [ns]
 wait_between_runs = 10_000  # [ns]
-n_avg = 1_000_000
+n_avg = 2_000_000
 resolution = 12  # histogram resolution in ns
 
 meas_len = int(initialization_len + 2 * laser_delay)  # total measurement length in ns
@@ -171,3 +171,4 @@ else:
     save_data_dict.update({"fig_live": fig})
     data_handler.additional_files = {script_name: script_name, **default_additional_files}
     data_handler.save_data(data=save_data_dict, name="_".join(script_name.split("_")[1:]).split(".")[0])
+    plt.show()

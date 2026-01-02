@@ -6,7 +6,7 @@ from qualang_tools.results import progress_counter, fetching_tool
 from qualang_tools.loops import from_array
 import plotly.io as pio
 
-from signal_generator.SG384 import SG384Control
+from SG384 import SG384Control
 
 pio.renderers.default = "browser"
 
@@ -42,8 +42,9 @@ qop_port = None  # Write the QOP port if version < QOP220
 # Save Path #
 #############
 # Path to save data
-save_dir = Path(__file__).parent.resolve() / "Data"
-save_dir.mkdir(exist_ok=True)
+# AU: changed default path to be one level up in Data folder
+save_dir = Path(__file__).parent.resolve().parent / "Data"
+save_dir.mkdir(parents=True, exist_ok=True)
 
 default_additional_files = {
     Path(__file__).name: Path(__file__).name,
@@ -53,8 +54,8 @@ default_additional_files = {
 ############################
 # Set SG384 configuration #
 ############################
-NV_LO_freq = 1.769 * u.GHz
-NV_LO_amp = -19 # in dBm
+NV_LO_freq = 1.769 * u.GHz  # aligned 364 G
+NV_LO_amp = -19  # in dBm
 sg384 = SG384Control("TCPIP0::18.25.11.6::5025::SOCKET")
 sg384.set_amplitude(NV_LO_amp)
 sg384.set_frequency(NV_LO_freq)
@@ -71,7 +72,7 @@ octave_config = None
 sampling_rate = int(1e9)  # needed in some scripts
 
 # Frequencies
-NV_IF_freq = 80 * u.MHz
+NV_IF_freq = 80.14 * u.MHz
 
 # Pulses lengths
 initialization_len_1 = 3000 * u.ns
@@ -87,11 +88,11 @@ relaxation_time = 300 * u.ns
 wait_for_initialization = 5 * relaxation_time
 
 # MW parameters
-mw_amp_NV = 0.2  # in units of volts
+mw_amp_NV = 0.1  # in units of volts
 mw_len_NV = 100 * u.ns
 
 x180_amp_NV = 0.1  # in units of volts
-x180_len_NV = 32  # in units of ns
+x180_len_NV = 516 * u.ns  # in units of ns #calibrate with #2026-01-01\26_time_rabi_175719
 
 x90_amp_NV = x180_amp_NV / 2  # in units of volts
 x90_len_NV = x180_len_NV  # in units of ns
@@ -105,10 +106,10 @@ rf_length = 1000
 signal_threshold_1 = -8_00  # ADC units, to convert to volts divide by 4096 (12 bit ADC)
 signal_threshold_2 = -2_000  # ADC units, to convert to volts divide by 4096 (12 bit ADC)
 
-# Delays
-detection_delay_1 = 292 * u.ns
+# Delays #calibrated with 2026-01-01\#40_calibrate_delays_182659
+detection_delay_1 = 392 * u.ns
 detection_delay_2 = 80 * u.ns
-laser_delay_1 = 140 * u.ns
+laser_delay_1 = 240 * u.ns
 laser_delay_2 = 0 * u.ns
 mw_delay = 0 * u.ns
 rf_delay = 0 * u.ns
@@ -138,7 +139,12 @@ config = {
     },
     "elements": {
         "NV": {
-            "mixInputs": {"I": ("con1", 1), "Q": ("con1", 2), "lo_frequency": NV_LO_freq, "mixer": "mixer_NV"},
+            "mixInputs": {
+                "I": ("con1", 1),
+                "Q": ("con1", 2),
+                "lo_frequency": NV_LO_freq,
+                "mixer": "mixer_NV",
+            },
             "intermediate_frequency": NV_IF_freq,
             "operations": {
                 "cw": "const_pulse",

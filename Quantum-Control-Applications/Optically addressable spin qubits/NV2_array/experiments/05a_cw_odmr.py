@@ -134,13 +134,16 @@ else:
         plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts_ref / 1000 / (readout_len * 1e-9), label="reference")
         plt.xlabel("MW frequency [MHz]")
         plt.ylabel("Intensity [kcps]")
-        plt.title("ODMR")
+        plt.title("CW ODMR")
         plt.legend()
         plt.pause(0.1)
+    #turn off SRS output
+    sg384.ntype_on(0)
     # Save results
     script_name = Path(__file__).name
     data_handler = DataHandler(root_data_folder=save_dir)
     save_data_dict.update({"counts_data": counts})
+    save_data_dict.update({"counts_ref_data": counts_ref})
     save_data_dict.update({"fig_live": fig})
     data_handler.additional_files = {script_name: script_name, **default_additional_files}
     data_handler.save_data(data=save_data_dict, name="_".join(script_name.split("_")[1:]).split(".")[0])
