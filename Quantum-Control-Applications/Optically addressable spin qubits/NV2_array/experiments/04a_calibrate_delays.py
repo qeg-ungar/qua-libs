@@ -33,11 +33,11 @@ time_bin = 0.5 if version_tuple >= (3, 5, 0) else 1.0
 ##################
 # Parameters Definition
 laser_delay = 500  # delay before laser [ns]
-initialization_len = 3_000  # laser duration length [ns]
+initialization_len = 5_000  # laser duration length [ns]
 mw_len = 5_00  # MW duration length [ns]
-wait_between_runs = 10_000  # [ns]
-n_avg = 2_000_000
-resolution = 12  # histogram resolution in ns
+wait_between_runs = 1_000  # [ns] #10_000
+n_avg = 1_000_000
+resolution = 24  # histogram resolution in ns #12
 
 meas_len = int(initialization_len + 2 * laser_delay)  # total measurement length in ns
 t_vec = np.arange(0, meas_len, time_bin)  # time vector in ns for plotting
@@ -154,7 +154,7 @@ else:
         # Fetch results
         times_hist, times_hist_dark, iteration = results.fetch_all()
         # Progress bar
-        progress_counter(iteration, n_avg, start_time=results.get_start_time())
+        #progress_counter(iteration, n_avg, start_time=results.get_start_time())
         # Plot data
         plt.cla()
         plt.plot(hist_bin_centers, times_hist / 1000 / (resolution / u.s) / iteration)

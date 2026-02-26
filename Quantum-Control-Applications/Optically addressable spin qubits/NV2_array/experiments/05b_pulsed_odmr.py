@@ -27,8 +27,9 @@ from qualang_tools.results.data_handler import DataHandler
 #   Parameters   #
 ##################
 # Parameters Definition
-f_vec = np.arange(70 * u.MHz, 90 * u.MHz, 0.25 * u.MHz)  # Frequency vector
-n_avg = 1_000_000  # number of averages
+#f_vec = np.arange(70 * u.MHz, 90 * u.MHz, 0.25 * u.MHz)  # Frequency vector #1 MHz Rabi
+f_vec = np.arange(50 * u.MHz, 110 * u.MHz, 0.5 * u.MHz)  # Frequency vector
+n_avg = 200_000  # number of averages
 
 # Determine reference readout during single laser pulse
 reference_wait = initialization_len_1 // 4 - 2 * meas_len_1 // 4 - 25  # in clock cycles
@@ -65,13 +66,22 @@ with program() as pulsed_odmr:
             measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
             save(counts, counts_st)  # save counts on stream
             # Measure reference photon counts at end of laser pulse
-            if reference_readout:
-                wait(reference_wait, "SPCM1")
-                measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
-            else:
-                assign(counts, 1)
+            # if reference_readout:
+            #     wait(reference_wait, "SPCM1")
+            #     measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
+            # else:
+            #     assign(counts, 1)
+            align()
+            wait(wait_between_runs * u.ns)
+            
+            play("x180" * amp(0), "NV")
+            align()
+            play("laser_ON", "AOM1")
+            # Measure and detect the photons on SPCM1
+            measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
             save(counts, counts_ref_st)
-            wait(5*wait_between_runs * u.ns)
+
+            wait(wait_between_runs * u.ns)
 
         save(n, n_st)  # save number of iterations inside for_loop
 
@@ -127,7 +137,7 @@ else:
         plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts / 1000 / (meas_len_1 * 1e-9), label="signal")
         plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts_ref / 1000 / (meas_len_1 * 1e-9), label="reference")
         plt.xlabel("MW frequency [MHz]")
-        plt.ylabel("Norm. Signal")
+        plt.ylabel("Intensity [kcps]")
         plt.title("pulsed ODMR")
         plt.legend()
         plt.pause(0.1)
@@ -135,10 +145,12 @@ else:
     sg384.ntype_on(0)
     # Save results
     script_name = Path(__file__).name
+    script_path = Path(__file__).resolve()
     data_handler = DataHandler(root_data_folder=save_dir)
     save_data_dict.update({"counts_data": counts})
-    save_data_dict.update({"counts_dark_data": counts_ref})
-    save_data_dict.update({"normalized_data": counts / counts_ref})
+    save_data_dict.update({"counts_ref_data": counts_ref})
+    #save_data_dict.update({"normalized_data": counts / counts_ref})
     save_data_dict.update({"fig_live": fig})
-    data_handler.additional_files = {script_name: script_name, **default_additional_files}
+    data_handler.additional_files = {str(script_path): script_name, **default_additional_files}
     data_handler.save_data(data=save_data_dict, name="_".join(script_name.split("_")[1:]).split(".")[0])
+plt.show()

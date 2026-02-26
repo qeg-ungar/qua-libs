@@ -27,7 +27,8 @@ from qualang_tools.results.data_handler import DataHandler
 #   Parameters   #
 ##################
 # Parameters Definition
-t_vec = np.arange(4, 800, 8)  # Pulse durations in clock cycles (4ns)
+t_vec = np.arange(4, 800, 8)  # Pulse durations in clock cycles (4ns) #1 MHz Rabi
+t_vec = np.arange(4, 400, 4)  # Pulse durations in clock cycles (4ns) #5 MHz Rabi
 n_avg = 1_000_000  # Number of averaging loops
 
 # Determine reference readout during single laser pulse
@@ -68,11 +69,20 @@ with program() as time_rabi:
             measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
             save(counts, counts_st)  # save counts
             # Measure reference photon counts at end of laser pulse
-            if reference_readout:
-                wait(reference_wait, "SPCM1")
-                measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
-            else:
-                assign(counts, 1)
+            # if reference_readout:
+            #     wait(reference_wait, "SPCM1")
+            #     measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
+            # else:
+            #     assign(counts, 1)
+            align()
+
+            wait(wait_between_runs * u.ns)
+            
+            play("x180" * amp(0), "NV", duration=t)
+            align()  # Play the laser pulse after the mw pulse
+            play("laser_ON", "AOM1")
+            # Measure and detect the photons on SPCM1
+            measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
             save(counts, counts_ref_st)
 
             wait(wait_between_runs * u.ns)
@@ -146,3 +156,4 @@ else:
     save_data_dict.update({"fig_live": fig})
     data_handler.additional_files = {script_name: script_name, **default_additional_files}
     data_handler.save_data(data=save_data_dict, name="_".join(script_name.split("_")[1:]).split(".")[0])
+plt.show()

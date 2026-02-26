@@ -46,16 +46,20 @@ qop_port = None  # Write the QOP port if version < QOP220
 save_dir = Path(__file__).parent.resolve().parent / "Data"
 save_dir.mkdir(parents=True, exist_ok=True)
 
+# Build additional files dict, only including files that exist
 default_additional_files = {
-    Path(__file__).name: Path(__file__).name,
-    "optimal_weights.npz": "optimal_weights.npz",
+    str(Path(__file__).resolve()): Path(__file__).name,
 }
+# Add optional files if they exist
+weights_path = Path(__file__).parent / "optimal_weights.npz"
+if weights_path.exists():
+    default_additional_files[str(weights_path)] = "optimal_weights.npz"
 
 ############################
 # Set SG384 configuration #
 ############################
-NV_LO_freq = 1.769 * u.GHz  # aligned 364 G
-NV_LO_amp = -19  # in dBm
+NV_LO_freq = 1.794 * u.GHz  # aligned 355 G #1.795
+NV_LO_amp = -16  # in dBm
 sg384 = SG384Control("TCPIP0::18.25.11.6::5025::SOCKET")
 sg384.set_amplitude(NV_LO_amp)
 sg384.set_frequency(NV_LO_freq)
@@ -72,27 +76,32 @@ octave_config = None
 sampling_rate = int(1e9)  # needed in some scripts
 
 # Frequencies
-NV_IF_freq = 80.14 * u.MHz
+NV_IF_freq = 80.06 * u.MHz  # NV IF frequency
 
 # Pulses lengths
-initialization_len_1 = 3000 * u.ns
-meas_len_1 = 500 * u.ns
+initialization_len_1 = 3000 * u.ns  # NV ensemble calibrated with  2026-02-10\#119_calibrate_delays_185952
+meas_len_1 = 384 * u.ns  # 500 #calibrated at 0.48 mW with 2026-02-14\#218_calibrate_readout_163113
 long_meas_len_1 = 5_000 * u.ns
 
-initialization_len_2 = 3000 * u.ns
-meas_len_2 = 500 * u.ns
+initialization_len_2 = 3000 * u.ns 
 long_meas_len_2 = 5_000 * u.ns
+meas_len_2 = 384 * u.ns  # 500 #calibrated at 0.48 mW with 2026-02-14\#218_calibrate_readout_163113
+readout_len_SPAD = 384 * u.ns
 
 # Relaxation time from the metastable state to the ground state after during initialization
 relaxation_time = 300 * u.ns
 wait_for_initialization = 5 * relaxation_time
 
 # MW parameters
-mw_amp_NV = 0.1  # in units of volts
-mw_len_NV = 100 * u.ns
+mw_amp_NV = 0.052  # in units of volts
+mw_len_NV = 500 * u.ns
 
-x180_amp_NV = 0.1  # in units of volts
-x180_len_NV = 516 * u.ns  # in units of ns #calibrate with #2026-01-01\26_time_rabi_175719
+x180_amp_NV = 0.177  # in units of volts #calibrate with #2026-02-10\#108_power_rabi_175847
+x180_len_NV = 148 * u.ns  # in units of ns #calibrate with #2026-02-10\#105_time_rabi_174509
+
+# x180_amp_NV = 0.5*.06275  # in units of volts
+# x180_len_NV = 1000 * u.ns  # in units of ns
+
 
 x90_amp_NV = x180_amp_NV / 2  # in units of volts
 x90_len_NV = x180_len_NV  # in units of ns
@@ -104,18 +113,29 @@ rf_length = 1000
 
 # Readout parameters
 signal_threshold_1 = -8_00  # ADC units, to convert to volts divide by 4096 (12 bit ADC)
-signal_threshold_2 = -2_000  # ADC units, to convert to volts divide by 4096 (12 bit ADC)
+signal_threshold_2 = -8_00  #2_000  #ADC units, to convert to volts divide by 4096 (12 bit ADC)
 
-# Delays #calibrated with 2026-01-01\#40_calibrate_delays_182659
-detection_delay_1 = 392 * u.ns
-detection_delay_2 = 80 * u.ns
-laser_delay_1 = 240 * u.ns
+# Delays #calibrated with 2026-02-10\#115_calibrate_delays_184951
+#did not add extra delay relative to start of laser, according to one-note NV ensemble calibration 20260210
+#optimal start start time is 519 ns and duration of 384 ns (average of 372 and 396 from 2 methods)
+#detection_delay_1 = 324 * u.ns  #running 'calibrate_delays' shows laser start at 500 ns
+detection_delay_1 = 344 * u.ns #added 20 ns delay on 2026-02-26 to account for delay in laser rise time, so that now detection starts at 500- 20 ns in calibration script
+#detection_delay_2 = 5628 * u.ns
+detection_delay_2 = 1440 * u.ns #running 'calibrate_delays' shows laser start at 500 ns #see on-note 'SNR and delays with high power laser'
+detection_delay_2 = 1540 * u.ns #20260226 added 100 ns delay, so rise of laser starts at 400 ns in calibration script
+
+laser_delay_1 = 196 * u.ns
 laser_delay_2 = 0 * u.ns
-mw_delay = 0 * u.ns
+
+mw_delay_1 = 0 * u.ns
+mw_delay_2 = 1000 * u.ns
+mw_delay = mw_delay_2
+
+SPAD_delay = 17800 * u.ns #20.8 us min repetition time - 3 us laser pulse
+
 rf_delay = 0 * u.ns
 
-
-wait_between_runs = 100
+wait_between_runs = 500 * u.ns  # calibrated 2026-02-10 with CW-ODMR ref
 
 config = {
     "controllers": {
@@ -130,6 +150,7 @@ config = {
                 2: {},  # AOM/Laser
                 3: {},  # SPCM1 - indicator
                 4: {},  # SPCM2 - indicator
+                5: {},  # SPAD array 
             },
             "analog_inputs": {
                 1: {"offset": 0},  # SPCM1
@@ -187,6 +208,18 @@ config = {
                 "laser_ON": "laser_ON_2",
             },
         },
+        "SPAD": {
+            "digitalInputs": {
+                "marker": {
+                    "port": ("con1", 5),
+                    "delay": detection_delay_2,
+                    "buffer": 0,
+                },
+            },
+            "operations": {
+                "readout_SPAD": "readout_pulse_SPAD",
+            },
+        },
         "SPCM1": {
             "singleInput": {"port": ("con1", 1)},  # not used
             "digitalInputs": {  # for visualization in simulation
@@ -223,7 +256,7 @@ config = {
                 "readout": "readout_pulse_2",
                 "long_readout": "long_readout_pulse_2",
             },
-            "outputs": {"out1": ("con1", 2)},
+            "outputs": {"out1": ("con1", 1)},
             "timeTaggingParameters": {
                 "signalThreshold": signal_threshold_2,  # ADC units
                 "signalPolarity": "Below",
@@ -308,6 +341,11 @@ config = {
             "length": long_meas_len_2,
             "digital_marker": "ON",
             "waveforms": {"single": "zero_wf"},
+        },
+        "readout_pulse_SPAD": {
+            "operation": "control",
+            "length": readout_len_SPAD,
+            "digital_marker": "ON",
         },
     },
     "waveforms": {

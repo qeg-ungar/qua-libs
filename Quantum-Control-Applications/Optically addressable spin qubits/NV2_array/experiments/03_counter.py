@@ -18,7 +18,7 @@ from qualang_tools.results.data_handler import DataHandler
 # Parameters Definition
 total_integration_time = int(100 * u.ms)  # Total duration of the measurement
 # Duration of a single chunk. Needed because the OPX cannot measure for more than ~1ms
-single_integration_time_ns = int(40 * u.us)  # changed from 500us for SPCM saturation of 25 Mcps 
+single_integration_time_ns = int(40 * u.us)  # changed from 500us for SPCM saturation of 25 Mcps
 single_integration_time_cycles = single_integration_time_ns // 4
 # Number of chunks to get the total measurement time
 n_count = int(total_integration_time / single_integration_time_ns)
