@@ -29,7 +29,7 @@ from qualang_tools.results.data_handler import DataHandler
 # Parameters Definition
 #f_vec = np.arange(70 * u.MHz, 90 * u.MHz, 0.25 * u.MHz)  # Frequency vector #1 MHz Rabi
 f_vec = np.arange(50 * u.MHz, 110 * u.MHz, 0.5 * u.MHz)  # Frequency vector
-n_avg = 200_000  # number of averages
+n_avg = 10_000  # number of averages
 
 # Determine reference readout during single laser pulse
 reference_wait = initialization_len_1 // 4 - 2 * meas_len_1 // 4 - 25  # in clock cycles
@@ -149,6 +149,7 @@ else:
     data_handler = DataHandler(root_data_folder=save_dir)
     save_data_dict.update({"counts_data": counts})
     save_data_dict.update({"counts_ref_data": counts_ref})
+    save_data_dict.update({"iteration": int(iteration)})
     #save_data_dict.update({"normalized_data": counts / counts_ref})
     save_data_dict.update({"fig_live": fig})
     data_handler.additional_files = {str(script_path): script_name, **default_additional_files}

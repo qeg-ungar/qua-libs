@@ -29,7 +29,7 @@ from qualang_tools.results.data_handler import DataHandler
 ##################
 # Parameters Definition
 a_vec = np.arange(0, 2, 0.04)  # The amplitude pre-factor vector
-n_avg = 1_000_000  # number of iterations
+n_avg = 200_000  # number of iterations
 
 # Determine reference readout during single laser pulse
 reference_wait = initialization_len_1 // 4 - 2 * meas_len_1 // 4 - 25  # in clock cycles
@@ -149,11 +149,13 @@ else:
     sg384.ntype_on(0)
     # Save results
     script_name = Path(__file__).name
+    script_path = Path(__file__).resolve()
     data_handler = DataHandler(root_data_folder=save_dir)
     save_data_dict.update({"counts_data": counts})
     save_data_dict.update({"counts_ref_data": counts_ref})
+    save_data_dict.update({"iteration": int(iteration)})
     #save_data_dict.update({"normalized_data": counts / counts_ref})
     save_data_dict.update({"fig_live": fig})
-    data_handler.additional_files = {script_name: script_name, **default_additional_files}
+    data_handler.additional_files = {str(script_path): script_name, **default_additional_files}
     data_handler.save_data(data=save_data_dict, name="_".join(script_name.split("_")[1:]).split(".")[0])
 plt.show()
