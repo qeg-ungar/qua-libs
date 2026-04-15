@@ -27,9 +27,9 @@ from qualang_tools.results.data_handler import DataHandler
 #   Parameters   #
 ##################
 # Parameters Definition
-#f_vec = np.arange(70 * u.MHz, 90 * u.MHz, 0.25 * u.MHz)  # Frequency vector #1 MHz Rabi
-f_vec = np.arange(50 * u.MHz, 110 * u.MHz, 0.5 * u.MHz)  # Frequency vector
-n_avg = 200_000  # number of averages
+# f_vec = np.arange(70 * u.MHz, 90 * u.MHz, 0.25 * u.MHz)  # Frequency vector #1 MHz Rabi
+f_vec = np.arange(65 * u.MHz, 95 * u.MHz, 0.5 * u.MHz)  # Frequency vector
+n_avg = 250_000  # number of averages
 
 # Determine reference readout during single laser pulse
 reference_wait = initialization_len_1 // 4 - 2 * meas_len_1 // 4 - 25  # in clock cycles
@@ -58,13 +58,15 @@ with program() as pulsed_odmr:
         with for_(*from_array(f, f_vec)):
             # Update the frequency of the digital oscillator linked to the element "NV"
             update_frequency("NV", f)
+            align()
             # Play the mw pulse
             play("x180" * amp(1), "NV")
             # Align for laser readout after the MW pulse
             align()
-            play("laser_ON", "AOM1")
-            measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
-            save(counts, counts_st)  # save counts on stream
+            play("laser_ON", "AOM2")
+            play("readout_SPAD", "SPAD")
+            # measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
+            # save(counts, counts_st)  # save counts on stream
             # Measure reference photon counts at end of laser pulse
             # if reference_readout:
             #     wait(reference_wait, "SPCM1")
@@ -72,23 +74,26 @@ with program() as pulsed_odmr:
             # else:
             #     assign(counts, 1)
             align()
-            wait(wait_between_runs * u.ns)
-            
+
+            wait(SPAD_delay * u.ns)
+
             play("x180" * amp(0), "NV")
             align()
-            play("laser_ON", "AOM1")
+            play("laser_ON", "AOM2")
+            play("readout_SPAD", "SPAD")
             # Measure and detect the photons on SPCM1
-            measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
-            save(counts, counts_ref_st)
-
-            wait(wait_between_runs * u.ns)
+            # measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
+            # save(counts, counts_ref_st)
+            align()
+            
+            wait(SPAD_delay * u.ns)
 
         save(n, n_st)  # save number of iterations inside for_loop
 
     with stream_processing():
         # Cast the data into a 1D vector, average the 1D vectors together and store the results on the OPX processor
-        counts_st.buffer(len(f_vec)).average().save("counts")
-        counts_ref_st.buffer(len(f_vec)).average().save("counts_ref")
+        # counts_st.buffer(len(f_vec)).average().save("counts")
+        # counts_ref_st.buffer(len(f_vec)).average().save("counts_ref")
         n_st.save("iteration")
 
 #####################################
@@ -122,35 +127,38 @@ else:
     # Send the QUA program to the OPX, which compiles and executes it
     job = qm.execute(pulsed_odmr)
     # Get results from QUA program
-    results = fetching_tool(job, data_list=["counts", "counts_ref", "iteration"], mode="live")
+    # results = fetching_tool(job, data_list=["counts", "counts_ref", "iteration"], mode="live")
+    results = fetching_tool(job, data_list=["iteration"], mode="live")
     # Live plotting
     fig = plt.figure()
     interrupt_on_close(fig, job)  # Interrupts the job when closing the figure
 
     while results.is_processing():
         # Fetch results
-        counts, counts_ref, iteration = results.fetch_all()
+        # counts, counts_ref, iteration = results.fetch_all()
+        (iteration,) = results.fetch_all()  # Unpack single value from tuple
         # Progress bar
         progress_counter(iteration, n_avg, start_time=results.get_start_time())
         # Plot data
         plt.cla()
-        plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts / 1000 / (meas_len_1 * 1e-9), label="signal")
-        plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts_ref / 1000 / (meas_len_1 * 1e-9), label="reference")
-        plt.xlabel("MW frequency [MHz]")
-        plt.ylabel("Intensity [kcps]")
+        # plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts / 1000 / (meas_len_1 * 1e-9), label="signal")
+        # plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts_ref / 1000 / (meas_len_1 * 1e-9), label="reference")
+        # plt.xlabel("MW frequency [MHz]")
+        # plt.ylabel("Intensity [kcps]")
         plt.title("pulsed ODMR")
-        plt.legend()
+        # plt.legend()
         plt.pause(0.1)
-    #turn off SRS out
+    # turn off SRS out
     sg384.ntype_on(0)
     # Save results
     script_name = Path(__file__).name
     script_path = Path(__file__).resolve()
     data_handler = DataHandler(root_data_folder=save_dir)
-    save_data_dict.update({"counts_data": counts})
-    save_data_dict.update({"counts_ref_data": counts_ref})
-    #save_data_dict.update({"normalized_data": counts / counts_ref})
-    save_data_dict.update({"fig_live": fig})
+    save_data_dict.update({"iteration": int(iteration)})
+    # save_data_dict.update({"counts_data": counts})
+    # save_data_dict.update({"counts_ref_data": counts_ref})
+    # save_data_dict.update({"normalized_data": counts / counts_ref})
+    # save_data_dict.update({"fig_live": fig})
     data_handler.additional_files = {str(script_path): script_name, **default_additional_files}
     data_handler.save_data(data=save_data_dict, name="_".join(script_name.split("_")[1:]).split(".")[0])
 plt.show()

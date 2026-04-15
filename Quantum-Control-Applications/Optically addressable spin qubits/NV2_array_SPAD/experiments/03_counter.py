@@ -38,9 +38,9 @@ with program() as counter:
         # Loop over the chunks to measure for the total integration time
         with for_(n, 0, n < n_count, n + 1):
             # Play the laser pulse...
-            play("laser_ON", "AOM1", duration=single_integration_time_cycles)
+            play("laser_ON", "AOM2", duration=single_integration_time_cycles)
             # ... while measuring the events from the SPCM
-            measure("readout", "SPCM1", time_tagging.analog(times, single_integration_time_ns, counts))
+            measure("readout", "SPCM2", time_tagging.analog(times, single_integration_time_ns, counts))
             # Increment the received counts
             assign(total_counts, total_counts + counts)
         # Save the counts

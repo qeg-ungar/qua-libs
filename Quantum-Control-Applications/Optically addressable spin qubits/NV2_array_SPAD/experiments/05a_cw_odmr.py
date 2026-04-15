@@ -26,10 +26,13 @@ from qualang_tools.results.data_handler import DataHandler
 ##################
 # Parameters Definition
 #f_vec = np.arange(40 * u.MHz, 120 * u.MHz, 0.5 * u.MHz)  # Frequency vector
-f_vec = np.arange(70 * u.MHz, 90 * u.MHz, 0.25 * u.MHz)  # Frequency vector
+f_vec = np.arange(60 * u.MHz, 100 * u.MHz, 0.75 * u.MHz)  # Frequency vector
 
-n_avg = 1_000_000  # number of averages
-readout_len = long_meas_len_1  # Readout duration for this experiment
+n_avg = 250_000  # number of averages
+init_delay = 2_500 #ns #1_000 with ensemble still dip in reference
+readout_len = long_meas_len_2  # Readout duration for this experiment
+
+SPAD_delay = SPAD_delay_cw
 
 # Data to save
 save_data_dict = {
@@ -59,34 +62,36 @@ with program() as cw_odmr:
             # Play the mw pulse...
             play("cw" * amp(1), "NV", duration=readout_len * u.ns)
             # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
-            play("laser_ON", "AOM1", duration=readout_len * u.ns)
-            wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
+            play("laser_ON", "AOM2", duration=readout_len * u.ns)
+            wait(init_delay * u.ns, "SPAD")  # so readout don't catch the first part of spin reinitialization
             # Measure and detect the photons on SPCM1
-            measure("long_readout", "SPCM1", time_tagging.analog(times, readout_len, counts))
+            play("readout_SPAD", "SPAD")
+            #measure("long_readout", "SPCM2", time_tagging.analog(times, readout_len, counts))
 
-            save(counts, counts_st)  # save counts on stream
-
-            wait(wait_between_runs * u.ns)
-
+            #save(counts, counts_st)  # save counts on stream
             align()
+            wait(SPAD_delay * u.ns)
+
             # Play the mw pulse with zero amplitude...
             play("cw" * amp(0), "NV", duration=readout_len * u.ns)
             # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
-            play("laser_ON", "AOM1", duration=readout_len * u.ns)
-            wait(1_000 * u.ns, "SPCM1")  # so readout don't catch the first part of spin reinitialization
+            play("laser_ON", "AOM2", duration=readout_len * u.ns)
+            wait(init_delay * u.ns, "SPAD")  # so readout don't catch the first part of spin reinitialization
             # Measure and detect the photons on SPCM1
-            measure("long_readout", "SPCM1", time_tagging.analog(times, readout_len, counts))
+            play("readout_SPAD", "SPAD")
+            #measure("long_readout", "SPCM1", time_tagging.analog(times, readout_len, counts))
 
-            save(counts, counts_ref_st)  # save counts on stream
+            #save(counts, counts_ref_st)  # save counts on stream
+            align()
 
-            wait(wait_between_runs * u.ns)
+            wait(SPAD_delay * u.ns)
 
             save(n, n_st)  # save number of iteration inside for_loop
 
     with stream_processing():
         # Cast the data into a 1D vector, average the 1D vectors together and store the results on the OPX processor
-        counts_st.buffer(len(f_vec)).average().save("counts")
-        counts_ref_st.buffer(len(f_vec)).average().save("counts_ref")
+        #counts_st.buffer(len(f_vec)).average().save("counts")
+        #counts_ref_st.buffer(len(f_vec)).average().save("counts_ref")
         n_st.save("iteration")
 
 #####################################
@@ -120,33 +125,35 @@ else:
     # Send the QUA program to the OPX, which compiles and executes it
     job = qm.execute(cw_odmr)
     # Get results from QUA program
-    results = fetching_tool(job, data_list=["counts", "counts_ref", "iteration"], mode="live")
+    results = fetching_tool(job, data_list=["iteration"], mode="live")
     # Live plotting
     fig = plt.figure()
     interrupt_on_close(fig, job)  # Interrupts the job when closing the figure
 
     while results.is_processing():
         # Fetch results
-        counts, counts_ref, iteration = results.fetch_all()
+        (iteration,) = results.fetch_all()
         # Progress bar
         progress_counter(iteration, n_avg, start_time=results.get_start_time())
         # Plot data
         plt.cla()
-        plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts / 1000 / (readout_len * 1e-9), label="signal")
-        plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts_ref / 1000 / (readout_len * 1e-9), label="reference")
-        plt.xlabel("MW frequency [MHz]")
-        plt.ylabel("Intensity [kcps]")
-        plt.title("CW ODMR")
-        plt.legend()
+        #plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts / 1000 / (readout_len * 1e-9), label="signal")
+        #plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts_ref / 1000 / (readout_len * 1e-9), label="reference")
+        #plt.xlabel("MW frequency [MHz]")
+        #plt.ylabel("Intensity [kcps]")
+        #plt.title("CW ODMR")
+        #plt.legend()
         plt.pause(0.1)
     #turn off SRS output
     sg384.ntype_on(0)
     # Save results
     script_name = Path(__file__).name
+    script_path = Path(__file__).resolve()
     data_handler = DataHandler(root_data_folder=save_dir)
-    save_data_dict.update({"counts_data": counts})
-    save_data_dict.update({"counts_ref_data": counts_ref})
-    save_data_dict.update({"fig_live": fig})
-    data_handler.additional_files = {script_name: script_name, **default_additional_files}
+    save_data_dict.update({"iteration": int(iteration)})
+    #save_data_dict.update({"counts_data": counts})
+    #save_data_dict.update({"counts_ref_data": counts_ref})
+    #save_data_dict.update({"fig_live": fig})
+    data_handler.additional_files = {str(script_path): script_name, **default_additional_files}
     data_handler.save_data(data=save_data_dict, name="_".join(script_name.split("_")[1:]).split(".")[0])
 plt.show()

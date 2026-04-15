@@ -62,7 +62,7 @@ if weights_path.exists():
 ############################
 # Set SG384 configuration #
 ############################
-NV_LO_freq = 1.794 * u.GHz  # aligned 355 G #1.795
+NV_LO_freq = 1.808 * u.GHz  # aligned 355 G #1.795
 NV_LO_amp = -16  # in dBm
 sg384 = SG384Control("TCPIP0::18.25.11.6::5025::SOCKET")
 sg384.set_amplitude(NV_LO_amp)
@@ -80,30 +80,31 @@ octave_config = None
 sampling_rate = int(1e9)  # needed in some scripts
 
 # Frequencies
-NV_IF_freq = 80.06 * u.MHz  # NV IF frequency
+NV_IF_freq = 79.725 * u.MHz  # NV IF frequency
 
 # Pulses lengths
 initialization_len_1 = 3000 * u.ns  # NV ensemble calibrated with  2026-02-10\#119_calibrate_delays_185952
 meas_len_1 = 384 * u.ns  # 500 #calibrated at 0.48 mW with 2026-02-14\#218_calibrate_readout_163113
-long_meas_len_1 = 5_000 * u.ns
+long_meas_len_1 = 10_000 * u.ns #5_000 * u.ns
 
-initialization_len_2 = 3000 * u.ns 
-meas_len_2 = 484 * u.ns  # 500 #calibrated at 0.48 mW with 2026-03-03\#4_calibrate_readout_183901
-long_meas_len_2 = 5_000 * u.ns
+initialization_len_2 = 5000 * u.ns #20260415 NV ensemble see one-note 'SPAD pulsed experiments'
+#meas_len_2 = 484 * u.ns  # 500 #calibrated at 0.48 mW with 2026-03-03\#4_calibrate_readout_183901
+meas_len_2 = 2600 * u.ns  # 20260415 NV ensemble see one-note 'SPAD pulsed experiments' and 2026-04-15\#60_calibrate_readout_101504
+long_meas_len_2 = 10_000 * u.ns
 
 # Relaxation time from the metastable state to the ground state after during initialization
 relaxation_time = 300 * u.ns
 wait_for_initialization = 5 * relaxation_time
 
 # MW parameters
-mw_amp_NV = 0.052  # in units of volts
+mw_amp_NV = 0.0581  # in units of volts #calibrated with 2026-04-14\#52_power_rabi_143734
 mw_len_NV = 500 * u.ns
 
-x180_amp_NV = 0.182  # in units of volts #calibrate with #2026-02-10\#108_power_rabi_175847
+x180_amp_NV = 0.1924  # in units of volts #calibrate with 2026-04-14\#55_power_rabi_144819
 x180_len_NV = 148 * u.ns  # in units of ns #calibrate with #2026-02-10\#105_time_rabi_174509
 
-# x180_amp_NV = 0.5*.052  # in units of volts
-# x180_len_NV = 1000 * u.ns  # in units of ns
+#x180_amp_NV = .0581  # in units of volts #calibrated with 2026-04-14\#52_power_rabi_143734
+#x180_len_NV = 500 * u.ns  # in units of ns
 
 x90_amp_NV = x180_amp_NV / 2  # in units of volts
 x90_len_NV = x180_len_NV  # in units of ns
@@ -115,14 +116,18 @@ rf_length = 1000
 
 # Readout parameters
 signal_threshold_1 = -8_00  # ADC units, to convert to volts divide by 4096 (12 bit ADC)
-signal_threshold_2 = -8_00  #2_000  #ADC units, to convert to volts divide by 4096 (12 bit ADC)
+signal_threshold_2 = -8_00  # 2_000  #ADC units, to convert to volts divide by 4096 (12 bit ADC)
 
-#detection_delay_1 = 324 * u.ns  #running '04a_calibrate_delays.py' shows laser start at 500 ns
-detection_delay_1 = 344 * u.ns #2026-02-26: added 20 ns delay to account for laser rise time, so that now detection starts at 500- 20 ns in calibration script
+# detection_delay_1 = 324 * u.ns  #running '04a_calibrate_delays.py' shows laser start at 500 ns
+detection_delay_1 = (
+    344 * u.ns
+)  # 2026-02-26: added 20 ns delay to account for laser rise time, so that now detection starts at 500- 20 ns in calibration script
 
-#delays for laser 2 calibrate in one-note 'SNR and delays with high power laser'
-#detection_delay_2 = 1440 * u.ns #running 'calibrate_delays' shows laser start at 500 ns 
-detection_delay_2 = (1440 + 32) * u.ns #2026-03-03: running 'calibrate_readout' added 32 ns delay, so rise of laser starts at 468 ns in calibration script
+# delays for laser 2 calibrate in one-note 'SNR and delays with high power laser'
+# detection_delay_2 = 1440 * u.ns #running 'calibrate_delays' shows laser start at 500 ns
+detection_delay_2 = (
+    1440 + 32
+) * u.ns  # 2026-03-03: running 'calibrate_readout' added 32 ns delay, so rise of laser starts at 468 ns in calibration script
 
 laser_delay_1 = 196 * u.ns
 laser_delay_2 = 0 * u.ns

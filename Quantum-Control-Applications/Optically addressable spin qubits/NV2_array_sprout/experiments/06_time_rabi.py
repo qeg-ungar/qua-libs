@@ -29,7 +29,7 @@ from qualang_tools.results.data_handler import DataHandler
 # Parameters Definition
 t_vec = np.arange(4, 800, 8)  # Pulse durations in clock cycles (4ns) #1 MHz Rabi
 t_vec = np.arange(4, 400, 4)  # Pulse durations in clock cycles (4ns) #5 MHz Rabi
-n_avg = 1_000_000  # Number of averaging loops
+n_avg = 200_000  # Number of averaging loops
 
 # Determine reference readout during single laser pulse
 reference_wait = initialization_len_1 // 4 - 2 * meas_len_1 // 4 - 25  # in clock cycles
@@ -64,14 +64,14 @@ with program() as time_rabi:
             # Play the Rabi pulse with varying durations
             play("x180" * amp(1), "NV", duration=t)
             align()  # Play the laser pulse after the mw pulse
-            play("laser_ON", "AOM1")
-            # Measure and detect the photons on SPCM1
-            measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
+            play("laser_ON", "AOM2")
+            # Measure and detect the photons on SPCM2
+            measure("readout", "SPCM2", time_tagging.analog(times, meas_len_1, counts))
             save(counts, counts_st)  # save counts
             # Measure reference photon counts at end of laser pulse
             # if reference_readout:
-            #     wait(reference_wait, "SPCM1")
-            #     measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
+            #     wait(reference_wait, "SPCM2")
+            #     measure("readout", "SPCM2", time_tagging.analog(times, meas_len_1, counts))
             # else:
             #     assign(counts, 1)
             align()
@@ -80,9 +80,9 @@ with program() as time_rabi:
             
             play("x180" * amp(0), "NV", duration=t)
             align()  # Play the laser pulse after the mw pulse
-            play("laser_ON", "AOM1")
-            # Measure and detect the photons on SPCM1
-            measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
+            play("laser_ON", "AOM2")
+            # Measure and detect the photons on SPCM2
+            measure("readout", "SPCM2", time_tagging.analog(times, meas_len_1, counts))
             save(counts, counts_ref_st)
 
             wait(wait_between_runs * u.ns)
@@ -149,11 +149,13 @@ else:
     sg384.ntype_on(0)
     # Save results
     script_name = Path(__file__).name
+    script_path = Path(__file__).resolve()
     data_handler = DataHandler(root_data_folder=save_dir)
     save_data_dict.update({"counts_data": counts})
     save_data_dict.update({"counts_ref_data": counts_ref})
+    save_data_dict.update({"iteration": int(iteration)})
     #save_data_dict.update({"normalized_data": counts / counts_ref})
     save_data_dict.update({"fig_live": fig})
-    data_handler.additional_files = {script_name: script_name, **default_additional_files}
+    data_handler.additional_files = {str(script_path): script_name, **default_additional_files}
     data_handler.save_data(data=save_data_dict, name="_".join(script_name.split("_")[1:]).split(".")[0])
 plt.show()

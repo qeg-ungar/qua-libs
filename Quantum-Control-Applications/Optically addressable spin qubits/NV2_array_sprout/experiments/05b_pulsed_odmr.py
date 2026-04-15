@@ -28,7 +28,7 @@ from qualang_tools.results.data_handler import DataHandler
 ##################
 # Parameters Definition
 #f_vec = np.arange(70 * u.MHz, 90 * u.MHz, 0.25 * u.MHz)  # Frequency vector #1 MHz Rabi
-f_vec = np.arange(50 * u.MHz, 110 * u.MHz, 0.5 * u.MHz)  # Frequency vector
+f_vec = np.arange(60 * u.MHz, 100 * u.MHz, 0.5 * u.MHz)  # Frequency vector
 n_avg = 200_000  # number of averages
 
 # Determine reference readout during single laser pulse
@@ -53,6 +53,9 @@ with program() as pulsed_odmr:
     f = declare(int)  # frequencies
     n = declare(int)  # number of iterations
     n_st = declare_stream()  # stream for number of iterations
+
+    #play("laser_ON", "AOM2", duration= 10e9*u.ns)  # 
+    #align()
 
     with for_(n, 0, n < n_avg, n + 1):
         with for_(*from_array(f, f_vec)):

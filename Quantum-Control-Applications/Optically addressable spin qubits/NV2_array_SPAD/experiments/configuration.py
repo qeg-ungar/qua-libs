@@ -1,5 +1,6 @@
 # Configuration file for NV2 confocal experiments using sprout lighthouse laser and SPCM detection
 # initialization and detection parameters are calibrated for NV ensemble array ["16","60"] using 0.48 mW laser power
+# channel for laser is AOM2, channel for SPAD trigger is digital output 5
 
 from pathlib import Path
 import numpy as np
@@ -61,7 +62,7 @@ if weights_path.exists():
 ############################
 # Set SG384 configuration #
 ############################
-NV_LO_freq = 1.794 * u.GHz  # aligned 355 G #1.795
+NV_LO_freq = 1.808 * u.GHz  # aligned 355 G #1.795
 NV_LO_amp = -16  # in dBm
 sg384 = SG384Control("TCPIP0::18.25.11.6::5025::SOCKET")
 sg384.set_amplitude(NV_LO_amp)
@@ -79,18 +80,18 @@ octave_config = None
 sampling_rate = int(1e9)  # needed in some scripts
 
 # Frequencies
-NV_IF_freq = 80.06 * u.MHz  # NV IF frequency
+NV_IF_freq = 80.15 * u.MHz  # NV IF frequency
 
 # Pulses lengths
 initialization_len_1 = 3000 * u.ns  # NV ensemble calibrated with  2026-02-10\#119_calibrate_delays_185952
 meas_len_1 = 384 * u.ns  # 500 #calibrated at 0.48 mW with 2026-02-14\#218_calibrate_readout_163113
-long_meas_len_1 = 5_000 * u.ns
+long_meas_len_1 = 10_000 * u.ns  # 5_000 * u.ns
 
-initialization_len_2 = 3000 * u.ns 
-meas_len_2 = 384 * u.ns  # 500 #calibrated at 0.48 mW with 2026-02-14\#218_calibrate_readout_163113
-long_meas_len_2 = 5_000 * u.ns
+initialization_len_2 = 5000 * u.ns #3_000 20260415
+meas_len_2 = 484 * u.ns  # 500 #calibrated at 0.48 mW with 2026-03-03\#4_calibrate_readout_183901
+long_meas_len_2 = 10_000 * u.ns
 
-readout_len_SPAD = 384 * u.ns 
+readout_len_SPAD = 484 * u.ns
 
 # Relaxation time from the metastable state to the ground state after during initialization
 relaxation_time = 300 * u.ns
@@ -100,11 +101,11 @@ wait_for_initialization = 5 * relaxation_time
 mw_amp_NV = 0.052  # in units of volts
 mw_len_NV = 500 * u.ns
 
-x180_amp_NV = 0.18  # in units of volts #calibrate with #2026-02-10\#108_power_rabi_175847
+x180_amp_NV = 0.1924  # in units of volts #calibrate with 2026-04-14\#55_power_rabi_144819
 x180_len_NV = 148 * u.ns  # in units of ns #calibrate with #2026-02-10\#105_time_rabi_174509
 
-# x180_amp_NV = 0.5*.052  # in units of volts
-# x180_len_NV = 1000 * u.ns  # in units of ns
+#x180_amp_NV = .0581  # in units of volts
+#x180_len_NV = 500 * u.ns  # in units of ns
 
 x90_amp_NV = x180_amp_NV / 2  # in units of volts
 x90_len_NV = x180_len_NV  # in units of ns
@@ -116,22 +117,28 @@ rf_length = 1000
 
 # Readout parameters
 signal_threshold_1 = -8_00  # ADC units, to convert to volts divide by 4096 (12 bit ADC)
-signal_threshold_2 = -8_00  #2_000  #ADC units, to convert to volts divide by 4096 (12 bit ADC)
+signal_threshold_2 = -8_00  # 2_000  #ADC units, to convert to volts divide by 4096 (12 bit ADC)
 
-# Delays #calibrated with 2026-02-10\#115_calibrate_delays_184951
-#did not add extra detection delay relative to start of laser, according to one-note NV ensemble calibration 20260210
-#0.48 mW optimal start time is 519 ns and duration of 384 ns (average of 372 and 396 from 2 methods)
-#detection_delay_1 = 324 * u.ns  #running '04a_calibrate_delays.py' shows laser start at 500 ns
-detection_delay_1 = 344 * u.ns #2026-02-26: added 20 ns delay to account for laser rise time, so that now detection starts at 500- 20 ns in calibration script
-#detection_delay_2 = 1440 * u.ns #running 'calibrate_delays' shows laser start at 500 ns #see one-note 'SNR and delays with high power laser'
-detection_delay_2 = 1540 * u.ns #2026-02-26: added 100 ns delay, so rise of laser starts at 400 ns in calibration script
+# detection_delay_1 = 324 * u.ns  #running '04a_calibrate_delays.py' shows laser start at 500 ns
+detection_delay_1 = (
+    344 * u.ns
+)  # 2026-02-26: added 20 ns delay to account for laser rise time, so that now detection starts at 500- 20 ns in calibration script
+
+# delays for laser 2 calibrate in one-note 'SNR and delays with high power laser'
+# detection_delay_2 = 1440 * u.ns #running 'calibrate_delays' shows laser start at 500 ns,
+# detection_delay_2 = (1440 + 32) * u.ns #2026-03-03: running 'calibrate_readout' added 32 ns delay, so rise of laser starts at 468 ns in calibration script
+detection_delay_2 = (1440 + 32 - 40) * u.ns  # 2026-03-03: account for 40 ns delay for SPAD gate
 
 laser_delay_1 = 196 * u.ns
 laser_delay_2 = 0 * u.ns
 
 mw_delay = 1000 * u.ns
 
-SPAD_delay = 17800 * u.ns #20.8 us min repetition time - 3 us laser pulse
+SPAD_HIT = 20_800 * u.ns  # hardware integration time
+SPAD_delay = SPAD_HIT - initialization_len_2  # 20.8 us min repetition time - 3 us laser pulse
+# SPAD_delay = 28200 * u.ns #31.2 us min repetition time - 3 us laser pulse #min HIT for GUI is 20.8 us, plus 10.4 us buffer
+# for CW ODMR can use shorter SPAD delay since readout time longer
+SPAD_delay_cw = SPAD_HIT - long_meas_len_2  # 20.8 us min repetition time
 
 rf_delay = 0 * u.ns
 
@@ -150,7 +157,7 @@ config = {
                 2: {},  # AOM/Laser
                 3: {},  # SPCM1 - indicator
                 4: {},  # SPCM2 - indicator
-                5: {},  # SPAD array 
+                5: {},  # SPAD array
             },
             "analog_inputs": {
                 1: {"offset": 0},  # SPCM1

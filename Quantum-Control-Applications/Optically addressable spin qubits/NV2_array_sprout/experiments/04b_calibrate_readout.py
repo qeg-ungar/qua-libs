@@ -34,22 +34,23 @@ time_bin = 0.5 if version_tuple >= (3, 5, 0) else 1.0
 # Parameters Definition
 laser_delay = 500  # delay before laser [ns]
 initialization_len = 5_000  # laser duration length [ns]
-mw_len = 5_00  # MW duration length [ns]
+mw_len = 1_48  # MW duration length [ns] #1_000
 wait_between_runs = 1_000  # [ns] #10_000
 n_avg = 10_000_000
-resolution = 24  # histogram resolution in ns #12
+resolution = 24  # histogram resolution in ns #24
 
-meas_len = int(initialization_len + 2 * laser_delay)  # total measurement length in ns
+meas_len = int(initialization_len + 2*laser_delay + 2 * mw_len)  # total measurement length in ns
 t_vec = np.arange(0, meas_len, time_bin)  # time vector in ns for plotting
 total_samples = len(t_vec)
 resolution_samp = int(resolution / time_bin)  # histogram resolution in time tag bins
 
-assert (initialization_len - mw_len) > 4, "The MW must be shorter than the laser pulse"
+#assert (initialization_len - mw_len) > 4, "The MW must be shorter than the laser pulse"
 
 # Data to save
 save_data_dict = {
     "n_avg": n_avg,
     "t_vec": t_vec,
+    "resolution": resolution,
     "config": config,
 }
 
@@ -67,14 +68,17 @@ with program() as calib_delays:
 
     with for_(n, 0, n < n_avg, n + 1):  # QUA for_ loop for averaging
         # Wait before starting the play the laser pulse
+        #wait(laser_delay * u.ns, "AOM2")
+        play("x180" * amp(0), "NV")
         wait(laser_delay * u.ns, "AOM2")
+        #align()  # Play the laser pulse after the mw pulse
         # Play the laser pulse for a duration given here by "initialization_len"
         play("laser_ON", "AOM2", duration=initialization_len * u.ns)
 
         # Delay the microwave pulse with respect to the laser pulse so that it arrives at the middle of the laser pulse
-        wait((laser_delay + (initialization_len - mw_len) // 2) * u.ns, "NV")
+        #wait((laser_delay + (initialization_len - mw_len) // 2) * u.ns, "NV")
         # Play microwave pulse
-        play("cw" * amp(1), "NV", duration=mw_len * u.ns)
+        #play("cw" * amp(1), "NV", duration=mw_len * u.ns)
 
         # Measure the photons counted by the SPCM
         measure("readout", "SPCM2", time_tagging.analog(times, meas_len, counts))
@@ -87,14 +91,17 @@ with program() as calib_delays:
         align()  # global align before measuring the dark counts
 
         # Wait before starting the play of the laser pulse
+        #wait(laser_delay * u.ns, "AOM2")
+        play("x180" * amp(1), "NV")
         wait(laser_delay * u.ns, "AOM2")
+        #align()  # Play the laser pulse after the mw pulse
         # Play the laser pulse for a duration given here by "initialization_len"
         play("laser_ON", "AOM2", duration=initialization_len * u.ns)
 
         # Delay the microwave pulse with respect to the laser pulse so that it arrives at the middle of the laser pulse
-        wait((laser_delay + (initialization_len - mw_len) // 2) * u.ns, "NV")
+        #wait((laser_delay + (initialization_len - mw_len) // 2) * u.ns, "NV")
         # Play microwave pulse
-        play("cw" * amp(0), "NV", duration=mw_len * u.ns)
+        #play("cw" * amp(0), "NV", duration=mw_len * u.ns)
 
         # Measure the photons counted by the SPCM
         measure("readout", "SPCM2", time_tagging.analog(times, meas_len, counts))
@@ -154,15 +161,17 @@ else:
         # Fetch results
         times_hist, times_hist_dark, iteration = results.fetch_all()
         # Progress bar
-        progress_counter(iteration, n_avg, start_time=results.get_start_time())
+        progress_counter(iteration, n_avg, start_time=results.get_start_time()) #commented out so program doesn't hang when counts are too high
         # Plot data
         plt.cla()
         plt.plot(hist_bin_centers, times_hist / 1000 / (resolution / u.s) / iteration)
         plt.plot(hist_bin_centers, times_hist_dark / 1000 / (resolution / u.s) / iteration)
         plt.xlabel("t [ns]")
         plt.ylabel(f"counts [kcps / {resolution}ns]")
-        plt.title("Delays")
+        plt.title("Readout")
         plt.pause(0.1)
+    #turn off microwave source
+    sg384.ntype_on(0)
     # Save results
     script_name = Path(__file__).name
     script_path = Path(__file__).resolve()
@@ -170,6 +179,7 @@ else:
     save_data_dict.update({"times_hist_data": times_hist})
     save_data_dict.update({"times_hist_dark_data": times_hist_dark})
     save_data_dict.update({"fig_live": fig})
+    save_data_dict.update({"iteration": int(iteration)})
     data_handler.additional_files = {str(script_path): script_name, **default_additional_files}
     data_handler.save_data(data=save_data_dict, name="_".join(script_name.split("_")[1:]).split(".")[0])
     plt.show()
