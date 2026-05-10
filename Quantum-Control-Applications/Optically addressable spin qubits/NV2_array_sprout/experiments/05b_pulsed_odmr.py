@@ -27,9 +27,9 @@ from qualang_tools.results.data_handler import DataHandler
 #   Parameters   #
 ##################
 # Parameters Definition
-#f_vec = np.arange(70 * u.MHz, 90 * u.MHz, 0.25 * u.MHz)  # Frequency vector #1 MHz Rabi
-f_vec = np.arange(60 * u.MHz, 100 * u.MHz, 0.5 * u.MHz)  # Frequency vector
-n_avg = 200_000  # number of averages
+f_vec = np.arange(70 * u.MHz, 90 * u.MHz, 0.25 * u.MHz)  # Frequency vector #1 MHz Rabi
+#f_vec = np.arange(60 * u.MHz, 100 * u.MHz, 0.5 * u.MHz)  # Frequency vector
+n_avg = 250_000  # number of averages
 
 # Determine reference readout during single laser pulse
 reference_wait = initialization_len_1 // 4 - 2 * meas_len_1 // 4 - 25  # in clock cycles
@@ -66,7 +66,7 @@ with program() as pulsed_odmr:
             # Align for laser readout after the MW pulse
             align()
             play("laser_ON", "AOM2")
-            measure("readout", "SPCM2", time_tagging.analog(times, meas_len_1, counts))
+            measure("readout", "SPCM2", time_tagging.analog(times, meas_len_2, counts))
             save(counts, counts_st)  # save counts on stream
             # Measure reference photon counts at end of laser pulse
             # if reference_readout:
@@ -81,7 +81,7 @@ with program() as pulsed_odmr:
             align()
             play("laser_ON", "AOM2")
             # Measure and detect the photons on SPCM2
-            measure("readout", "SPCM2", time_tagging.analog(times, meas_len_1, counts))
+            measure("readout", "SPCM2", time_tagging.analog(times, meas_len_2, counts))
             save(counts, counts_ref_st)
 
             wait(wait_between_runs * u.ns)
@@ -137,8 +137,8 @@ else:
         progress_counter(iteration, n_avg, start_time=results.get_start_time())
         # Plot data
         plt.cla()
-        plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts / 1000 / (meas_len_1 * 1e-9), label="signal")
-        plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts_ref / 1000 / (meas_len_1 * 1e-9), label="reference")
+        plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts / 1000 / (meas_len_2 * 1e-9), label="signal")
+        plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts_ref / 1000 / (meas_len_2 * 1e-9), label="reference")
         plt.xlabel("MW frequency [MHz]")
         plt.ylabel("Intensity [kcps]")
         plt.title("pulsed ODMR")

@@ -26,9 +26,9 @@ from qualang_tools.results.data_handler import DataHandler
 ##################
 # Parameters Definition
 #f_vec = np.arange(40 * u.MHz, 120 * u.MHz, 0.5 * u.MHz)  # Frequency vector
-f_vec = np.arange(60 * u.MHz, 100 * u.MHz, 0.75 * u.MHz)  # Frequency vector
+f_vec = np.arange(60 * u.MHz, 100 * u.MHz, 0.5 * u.MHz)  # Frequency vector
 
-n_avg = 250_000  # number of averages
+n_avg = 40_000  # number of averages
 init_delay = 2_500 #ns #1_000 with ensemble still dip in reference
 readout_len = long_meas_len_2  # Readout duration for this experiment
 

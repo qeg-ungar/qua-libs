@@ -22,7 +22,7 @@ from configuration import *
 ###################
 with program() as cw_output:
     with infinite_loop_():
-        play("cw" * amp(0), "NV")
+        play("cw" * amp(1), "NV")
 
 
 #####################################
@@ -33,9 +33,11 @@ qm = qmm.open_qm(config, close_other_machines=True)
 
 job = qm.execute(cw_output)
 
+
 # When done, the cancel command can be called and the offsets can be written directly into the config file.
 
-# job.cancel()
+job.cancel()
+sg384.ntype_on(0) #turn off when done
 
 # These are the 2 commands used to correct for mixer imperfections. The first is used to set the DC of the `I` and `Q`
 # channels to compensate for the LO leakage. Since this compensation depends on the 'I' & 'Q' powers, it is advised to
@@ -46,6 +48,10 @@ job = qm.execute(cw_output)
 
 # qm.set_output_dc_offset_by_element('NV', ('I', 'Q'), (-0.001, 0.003))
 # qm.set_mixer_correction(f'mixer_NV', int(NV_IF_freq), int(NV_LO_freq), IQ_imbalance(0.015, 0.01))
+
+# calibration 20260426:
+#qm.set_output_dc_offset_by_element("NV", ("I", "Q"), (-0.019, -0.019))
+#qm.set_mixer_correction(f"mixer_NV", int(NV_IF_freq), int(NV_LO_freq), IQ_imbalance(-0.1, -0.5))
 
 # Automatic LO leakage correction
 # element = "NV"

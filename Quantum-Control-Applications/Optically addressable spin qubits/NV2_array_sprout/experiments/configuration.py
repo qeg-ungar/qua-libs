@@ -62,8 +62,17 @@ if weights_path.exists():
 ############################
 # Set SG384 configuration #
 ############################
-NV_LO_freq = 1.808 * u.GHz  # aligned 355 G #1.795
-NV_LO_amp = -16  # in dBm
+#NV_LO_freq = 1.808 * u.GHz  # aligned [111] 351 G 
+#NV_LO_freq = 1.820 * u.GHz  # aligned [111] 351 G #gradient on with DC bias on MW channel
+#NV_LO_amp = -16  # in dBm
+
+#NV_LO_freq = 2.36 * u.GHz  #aligned [111] 152 G (gradiemt)
+NV_LO_freq = 2.35 * u.GHz  #aligned [-1-11] 152 G
+#NV_LO_freq = 2.73 * u.GHz   #misaligned orientations 152 G
+NV_LO_amp = -8  # in dBm
+#NV_LO_amp = -16  # -19 #in dBm CW ODMR 
+
+
 sg384 = SG384Control("TCPIP0::18.25.11.6::5025::SOCKET")
 sg384.set_amplitude(NV_LO_amp)
 sg384.set_frequency(NV_LO_freq)
@@ -80,16 +89,20 @@ octave_config = None
 sampling_rate = int(1e9)  # needed in some scripts
 
 # Frequencies
-NV_IF_freq = 79.725 * u.MHz  # NV IF frequency
+NV_IF_freq = 81.76 * u.MHz  # NV IF frequency #5 Mhz Rabi
+NV_IF_freq = 80.671 * u.MHz  # NV IF frequency #1 MHz Rabi minus HF
+#NV_IF_freq = 80 * u.MHz  # NV IF frequency
+
 
 # Pulses lengths
 initialization_len_1 = 3000 * u.ns  # NV ensemble calibrated with  2026-02-10\#119_calibrate_delays_185952
 meas_len_1 = 384 * u.ns  # 500 #calibrated at 0.48 mW with 2026-02-14\#218_calibrate_readout_163113
 long_meas_len_1 = 10_000 * u.ns #5_000 * u.ns
 
-initialization_len_2 = 5000 * u.ns #20260415 NV ensemble see one-note 'SPAD pulsed experiments'
-#meas_len_2 = 484 * u.ns  # 500 #calibrated at 0.48 mW with 2026-03-03\#4_calibrate_readout_183901
-meas_len_2 = 2600 * u.ns  # 20260415 NV ensemble see one-note 'SPAD pulsed experiments' and 2026-04-15\#60_calibrate_readout_101504
+initialization_len_2 = 3000 * u.ns #
+#initialization_len_2 = 5000 * u.ns #20260415 NV ensemble at 100 uW see one-note 'SPAD pulsed experiments'
+meas_len_2 = 484 * u.ns  # 500 #calibrated at 0.48 mW with 2026-03-03\#4_calibrate_readout_183901
+#meas_len_2 = 2600 * u.ns  # 20260415 NV ensemble see one-note 'SPAD pulsed experiments' and 2026-04-15\#60_calibrate_readout_101504
 long_meas_len_2 = 10_000 * u.ns
 
 # Relaxation time from the metastable state to the ground state after during initialization
@@ -97,14 +110,17 @@ relaxation_time = 300 * u.ns
 wait_for_initialization = 5 * relaxation_time
 
 # MW parameters
-mw_amp_NV = 0.0581  # in units of volts #calibrated with 2026-04-14\#52_power_rabi_143734
+mw_amp_NV = 0.055  # in units of volts #calibrated with 2026-04-27\#317_power_rabi_141608
 mw_len_NV = 500 * u.ns
 
-x180_amp_NV = 0.1924  # in units of volts #calibrate with 2026-04-14\#55_power_rabi_144819
-x180_len_NV = 148 * u.ns  # in units of ns #calibrate with #2026-02-10\#105_time_rabi_174509
+#x180_amp_NV = 0.179  # in units of volts #calibrate with 2026-04-27\#314_power_rabi_134700
+#x180_len_NV = 148 * u.ns  # in units of ns 
 
-#x180_amp_NV = .0581  # in units of volts #calibrated with 2026-04-14\#52_power_rabi_143734
-#x180_len_NV = 500 * u.ns  # in units of ns
+x180_amp_NV = 0.0581  # in units of volts #calibrated with 2026-04-27\#317_power_rabi_141608
+x180_len_NV = 500 * u.ns  # in units of ns
+
+#x180_amp_NV = 0.05  # misaligned orientations
+#x180_len_NV = 1000 * u.ns  # in units of ns
 
 x90_amp_NV = x180_amp_NV / 2  # in units of volts
 x90_len_NV = x180_len_NV  # in units of ns
@@ -345,7 +361,7 @@ config = {
     },
     "mixers": {
         "mixer_NV": [
-            {"intermediate_frequency": NV_IF_freq, "lo_frequency": NV_LO_freq, "correction": IQ_imbalance(0.03, -0.05)},
+            {"intermediate_frequency": NV_IF_freq, "lo_frequency": NV_LO_freq, "correction": IQ_imbalance(0.03, 0.05)},
         ],
     },
 }

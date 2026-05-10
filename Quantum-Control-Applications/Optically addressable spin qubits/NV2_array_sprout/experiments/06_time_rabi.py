@@ -28,7 +28,7 @@ from qualang_tools.results.data_handler import DataHandler
 ##################
 # Parameters Definition
 t_vec = np.arange(4, 800, 8)  # Pulse durations in clock cycles (4ns) #1 MHz Rabi
-t_vec = np.arange(4, 400, 4)  # Pulse durations in clock cycles (4ns) #5 MHz Rabi
+#t_vec = np.arange(4, 400, 4)  # Pulse durations in clock cycles (4ns) #5 MHz Rabi
 n_avg = 200_000  # Number of averaging loops
 
 # Determine reference readout during single laser pulse
@@ -55,8 +55,8 @@ with program() as time_rabi:
     n_st = declare_stream()  # stream to save iterations
 
     # Spin initialization
-    play("laser_ON", "AOM1")
-    wait(wait_for_initialization * u.ns, "AOM1")
+    #play("laser_ON", "AOM1")
+    #wait(wait_for_initialization * u.ns, "AOM1")
 
     # Time Rabi sweep
     with for_(n, 0, n < n_avg, n + 1):
@@ -66,7 +66,7 @@ with program() as time_rabi:
             align()  # Play the laser pulse after the mw pulse
             play("laser_ON", "AOM2")
             # Measure and detect the photons on SPCM2
-            measure("readout", "SPCM2", time_tagging.analog(times, meas_len_1, counts))
+            measure("readout", "SPCM2", time_tagging.analog(times, meas_len_2, counts))
             save(counts, counts_st)  # save counts
             # Measure reference photon counts at end of laser pulse
             # if reference_readout:
@@ -82,7 +82,7 @@ with program() as time_rabi:
             align()  # Play the laser pulse after the mw pulse
             play("laser_ON", "AOM2")
             # Measure and detect the photons on SPCM2
-            measure("readout", "SPCM2", time_tagging.analog(times, meas_len_1, counts))
+            measure("readout", "SPCM2", time_tagging.analog(times, meas_len_2, counts))
             save(counts, counts_ref_st)
 
             wait(wait_between_runs * u.ns)
@@ -138,8 +138,8 @@ else:
         progress_counter(iteration, n_avg, start_time=results.get_start_time())
         # Plot data
         plt.cla()
-        plt.plot(t_vec * 4, counts / 1000 / (meas_len_1 * 1e-9), label="signal")
-        plt.plot(t_vec * 4, counts_ref / 1000 / (meas_len_1 * 1e-9), label="reference")
+        plt.plot(t_vec * 4, counts / 1000 / (meas_len_2 * 1e-9), label="signal")
+        plt.plot(t_vec * 4, counts_ref / 1000 / (meas_len_2 * 1e-9), label="reference")
         plt.xlabel("Rabi pulse duration [ns]")
         plt.ylabel("Intensity [kcps]")
         plt.title("Time Rabi")

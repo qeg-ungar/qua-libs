@@ -28,11 +28,7 @@ from qualang_tools.results.data_handler import DataHandler
 #f_vec = np.arange(40 * u.MHz, 120 * u.MHz, 0.5 * u.MHz)  # Frequency vector
 f_vec = np.arange(65 * u.MHz, 95 * u.MHz, 0.5 * u.MHz)  # Frequency vector
 
-n_avg = 250_000  # number of averages
-init_delay = 2_500 #ns #1_000 with ensemble still dip in reference
-readout_len = long_meas_len_2  # Readout duration for this experiment
-
-SPAD_delay = SPAD_delay_cw
+n_avg = 1_000_000  # number of averages
 
 # Data to save
 save_data_dict = {
@@ -60,11 +56,11 @@ with program() as cw_odmr:
             # align all elements before starting the sequence
             align()
             # Play the mw pulse...
-            play("cw" * amp(1), "NV")
+            play("x180" * amp(1), "NV")
             align()
             # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
-            play("laser_ON", "AOM2", duration=readout_len * u.ns)
-            wait(init_delay * u.ns, "SPAD")  # so readout don't catch the first part of spin reinitialization
+            play("laser_ON", "AOM2")
+            #wait(init_delay * u.ns, "SPAD")  # so readout don't catch the first part of spin reinitialization
             # Measure and detect the photons on SPCM1
             play("readout_SPAD", "SPAD")
             #measure("long_readout", "SPCM2", time_tagging.analog(times, readout_len, counts))
@@ -74,11 +70,11 @@ with program() as cw_odmr:
             wait(SPAD_delay * u.ns)
 
             # Play the mw pulse with zero amplitude...
-            play("cw" * amp(0), "NV")
+            play("x180" * amp(0), "NV")
             align()
             # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
-            play("laser_ON", "AOM2", duration=readout_len * u.ns)
-            wait(init_delay * u.ns, "SPAD")  # so readout don't catch the first part of spin reinitialization
+            play("laser_ON", "AOM2")
+            #wait(init_delay * u.ns, "SPAD")  # so readout don't catch the first part of spin reinitialization
             # Measure and detect the photons on SPCM1
             play("readout_SPAD", "SPAD")
             #measure("long_readout", "SPCM1", time_tagging.analog(times, readout_len, counts))

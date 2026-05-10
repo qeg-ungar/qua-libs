@@ -28,7 +28,7 @@ from qualang_tools.results.data_handler import DataHandler
 ##################
 # Parameters Definition
 t_vec = np.arange(4, 800, 8)  # Pulse durations in clock cycles (4ns) #1 MHz Rabi
-t_vec = np.arange(4, 400, 4)  # Pulse durations in clock cycles (4ns) #5 MHz Rabi
+t_vec = np.arange(4, 250, 4)  # Pulse durations in clock cycles (4ns) #5 MHz Rabi
 n_avg = 1_000_000  # Number of averaging loops
 
 # Determine reference readout during single laser pulse
