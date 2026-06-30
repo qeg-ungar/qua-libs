@@ -29,7 +29,8 @@ from qualang_tools.results.data_handler import DataHandler
 ##################
 # Parameters Definition
 a_vec = np.arange(0, 2, 0.04)  # The amplitude pre-factor vector
-n_avg = 250_000  # number of iterations
+#n_avg = 250_000  # number of iterations
+n_avg = 400_000  # number of iterations
 
 # Determine reference readout during single laser pulse
 reference_wait = initialization_len_1 // 4 - 2 * meas_len_1 // 4 - 25  # in clock cycles

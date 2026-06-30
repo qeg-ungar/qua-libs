@@ -66,11 +66,17 @@ if weights_path.exists():
 #NV_LO_freq = 1.820 * u.GHz  # aligned [111] 351 G #gradient on with DC bias on MW channel
 #NV_LO_amp = -16  # in dBm
 
-#NV_LO_freq = 2.36 * u.GHz  #aligned [111] 152 G (gradiemt)
-NV_LO_freq = 2.35 * u.GHz  #aligned [-1-11] 152 G
-#NV_LO_freq = 2.73 * u.GHz   #misaligned orientations 152 G
-NV_LO_amp = -8  # in dBm
-#NV_LO_amp = -16  # -19 #in dBm CW ODMR 
+NV_LO_freq = 1.805 * u.GHz  #aligned [-1-11] 352 G
+#NV_LO_freq = 1.800 * u.GHz  #aligned [-1-11] 352 G, gradient on
+#NV_LO_amp = -4  # in dBm #after adding power splitter for gradient
+NV_LO_amp = -8  # in dBm #with DC bias tee for gradient drive
+
+#NV_LO_freq = 2.356 * u.GHz  #aligned [-1-11] 152 G
+#NV_LO_freq = 2.74 * u.GHz   #misaligned orientations 152 G
+#NV_LO_amp = -4  # in dBm #after adding power splitter for gradient
+#NV_LO_amp = -8  # in dBm
+
+#NV_LO_amp = -16  # -19 #in dBm low power CW ODMR 
 
 
 sg384 = SG384Control("TCPIP0::18.25.11.6::5025::SOCKET")
@@ -89,8 +95,7 @@ octave_config = None
 sampling_rate = int(1e9)  # needed in some scripts
 
 # Frequencies
-NV_IF_freq = 81.76 * u.MHz  # NV IF frequency #5 Mhz Rabi
-NV_IF_freq = 80.671 * u.MHz  # NV IF frequency #1 MHz Rabi minus HF
+NV_IF_freq = 80.34 * u.MHz  # NV IF frequency 
 #NV_IF_freq = 80 * u.MHz  # NV IF frequency
 
 
@@ -113,13 +118,13 @@ wait_for_initialization = 5 * relaxation_time
 mw_amp_NV = 0.055  # in units of volts #calibrated with 2026-04-27\#317_power_rabi_141608
 mw_len_NV = 500 * u.ns
 
-#x180_amp_NV = 0.179  # in units of volts #calibrate with 2026-04-27\#314_power_rabi_134700
-#x180_len_NV = 148 * u.ns  # in units of ns 
+x180_amp_NV = 0.1365  # in units of volts #calibrate with 2026-06-26\#628_power_rabi_150630
+x180_len_NV = 148 * u.ns  # in units of ns 
 
-x180_amp_NV = 0.0581  # in units of volts #calibrated with 2026-04-27\#317_power_rabi_141608
-x180_len_NV = 500 * u.ns  # in units of ns
+#x180_amp_NV = 0.0369  # in units of volts #calibrated with  2026-06-10\#590_power_rabi_165917
+#x180_len_NV = 500 * u.ns  # in units of ns
 
-#x180_amp_NV = 0.05  # misaligned orientations
+#x180_amp_NV = .5 * 0.0369  # in units of volts
 #x180_len_NV = 1000 * u.ns  # in units of ns
 
 x90_amp_NV = x180_amp_NV / 2  # in units of volts
@@ -129,6 +134,9 @@ x90_len_NV = x180_len_NV  # in units of ns
 rf_frequency = 10 * u.MHz
 rf_amp = 0.1
 rf_length = 1000
+
+# MW switch parameters
+mw_switch_len = 2000 * u.ns
 
 # Readout parameters
 signal_threshold_1 = -8_00  # ADC units, to convert to volts divide by 4096 (12 bit ADC)
@@ -152,7 +160,17 @@ mw_delay = 1000 * u.ns
 
 rf_delay = 0 * u.ns
 
+#mw_switch_delay = 240 * u.ns #see one-note 'SPAD/Testing/design RF switch for gradient'
+#mw_switch_delay = 500 * u.ns #see one-note 'SPAD/Testing/design RF switch for gradient'
+#mw_switch_delay = 1200 * u.ns #see one-note 'SPAD/Testing/design RF switch for gradient'
+mw_switch_delay = 0 * u.ns #see one-note 'Pulsed gradient testing'
+
 wait_between_runs = 500 * u.ns  # calibrated 2026-02-10 with CW-ODMR ref
+
+wait_between_runs_SPAD = (20_800 - 3_000) * u.ns  # testing gradient switch
+#wait_between_runs_SPAD = (5_000) * u.ns  # testing gradient switch
+#wait_between_runs_SPAD = (500) * u.ns  # testing gradient switch
+
 
 config = {
     "controllers": {
@@ -222,6 +240,18 @@ config = {
             },
             "operations": {
                 "laser_ON": "laser_ON_2",
+            },
+        },
+        "MW_switch": {
+            "digitalInputs": {
+                "marker": {
+                    "port": ("con1", 1), #not using SPCM1
+                    "delay": mw_switch_delay,
+                    "buffer": 0,
+                },
+            },
+            "operations": {
+                "mw_switch_ON": "mw_switch_ON_1",
             },
         },
         "SPCM1": {
@@ -320,6 +350,11 @@ config = {
         "laser_ON_2": {
             "operation": "control",
             "length": initialization_len_2,
+            "digital_marker": "ON",
+        },
+        "mw_switch_ON_1": {
+            "operation": "control",
+            "length": mw_switch_len,
             "digital_marker": "ON",
         },
         "readout_pulse_1": {

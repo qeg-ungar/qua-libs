@@ -105,3 +105,5 @@ else:
         plt.ylabel("Counts [kcps]")
         plt.title("Counter")
         plt.pause(0.1)
+#turn off SRS output
+sg384.ntype_on(0)

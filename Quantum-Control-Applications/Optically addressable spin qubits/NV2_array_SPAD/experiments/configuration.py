@@ -67,8 +67,14 @@ if weights_path.exists():
 #NV_LO_amp = -16  # in dBm
 
 #NV_LO_freq = 2.36 * u.GHz  #aligned [111] 152 G, gradient on
-NV_LO_freq = 2.35 * u.GHz  #aligned [111] 152 G, gradient off
-NV_LO_amp = -8  # in dBm
+#NV_LO_freq = 2.356 * u.GHz  #aligned [111] 152 G, gradient off
+#NV_LO_amp = -8  # in dBm
+
+NV_LO_freq = 1.805 * u.GHz  #aligned [-1-11] 352 G
+#NV_LO_freq = 1.800 * u.GHz  #aligned [-1-11] 352 G, gradient on
+#NV_LO_amp = -4  # in dBm #after adding power splitter for gradient
+NV_LO_amp = -8  # in dBm #with DC bias
+
 
 sg384 = SG384Control("TCPIP0::18.25.11.6::5025::SOCKET")
 sg384.set_amplitude(NV_LO_amp)
@@ -95,7 +101,7 @@ long_meas_len_1 = 10_000 * u.ns  # 5_000 * u.ns
 
 initialization_len_2 = 3000 * u.ns #3_000 20260415
 meas_len_2 = 484 * u.ns  # 500 #calibrated at 0.48 mW with 2026-03-03\#4_calibrate_readout_183901
-long_meas_len_2 = 10_000 * u.ns #10_000
+long_meas_len_2 = 10_000 * u.ns #5_000 #10_000
 
 readout_len_SPAD = 484 * u.ns
 
@@ -104,14 +110,17 @@ relaxation_time = 300 * u.ns
 wait_for_initialization = 5 * relaxation_time
 
 # MW parameters
-mw_amp_NV = (8.5/6) * 0.0581  # in units of volts
+mw_amp_NV = 0.055  # in units of volts
 mw_len_NV = 500 * u.ns
 
-x180_amp_NV = 0.179  # in units of volts #calibrate with 2026-04-27\#314_power_rabi_134700
+x180_amp_NV = 0.1365  # in units of volts #calibrate with 2026-06-26\#628_power_rabi_150630
 x180_len_NV = 148 * u.ns  # in units of ns 
 
-#x180_amp_NV = .055  # in units of volts #calibrated with 2026-04-27\#317_power_rabi_141608
+#x180_amp_NV = 0.1365*148/500  # in units of volts #calibrated with  2026-06-10\#590_power_rabi_165917
 #x180_len_NV = 500 * u.ns  # in units of ns
+
+#x180_amp_NV = .5 * 0.0369  # in units of volts
+#x180_len_NV = 1000 * u.ns  # in units of ns
 
 x90_amp_NV = x180_amp_NV / 2  # in units of volts
 x90_len_NV = x180_len_NV  # in units of ns
@@ -120,6 +129,9 @@ x90_len_NV = x180_len_NV  # in units of ns
 rf_frequency = 10 * u.MHz
 rf_amp = 0.1
 rf_length = 1000
+
+# MW switch parameters
+mw_switch_len = 2000 * u.ns
 
 # Readout parameters
 signal_threshold_1 = -8_00  # ADC units, to convert to volts divide by 4096 (12 bit ADC)
@@ -147,6 +159,8 @@ SPAD_delay = SPAD_HIT - initialization_len_2  # 20.8 us min repetition time - 3 
 SPAD_delay_cw = SPAD_HIT - long_meas_len_2  # 20.8 us min repetition time
 
 rf_delay = 0 * u.ns
+
+mw_switch_delay = 0 * u.ns #see one-note 'Pulsed gradient testing'
 
 wait_between_runs = 500 * u.ns  # calibrated 2026-02-10 with CW-ODMR ref
 
@@ -200,8 +214,8 @@ config = {
         "AOM1": {
             "digitalInputs": {
                 "marker": {
-                    "port": ("con1", 1),
-                    "delay": laser_delay_1,
+                    "port": ("con1", 3), #not using RF 
+                    "delay": laser_delay_2,
                     "buffer": 0,
                 },
             },
@@ -219,6 +233,18 @@ config = {
             },
             "operations": {
                 "laser_ON": "laser_ON_2",
+            },
+        },
+        "MW_switch": {
+            "digitalInputs": {
+                "marker": {
+                    "port": ("con1", 1), #not using SPCM1
+                    "delay": mw_switch_delay,
+                    "buffer": 0,
+                },
+            },
+            "operations": {
+                "mw_switch_ON": "mw_switch_ON_1",
             },
         },
         "SPAD": {
@@ -329,6 +355,11 @@ config = {
         "laser_ON_2": {
             "operation": "control",
             "length": initialization_len_2,
+            "digital_marker": "ON",
+        },
+        "mw_switch_ON_1": {
+            "operation": "control",
+            "length": mw_switch_len,
             "digital_marker": "ON",
         },
         "readout_pulse_1": {
