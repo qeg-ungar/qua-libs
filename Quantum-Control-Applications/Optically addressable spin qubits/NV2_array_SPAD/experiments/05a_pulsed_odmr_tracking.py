@@ -26,6 +26,7 @@ from qualang_tools.results.data_handler import DataHandler
 ##################
 # Parameters Definition
 #f_vec = np.arange(40 * u.MHz, 120 * u.MHz, 0.5 * u.MHz)  # Frequency vector
+#f_vec = np.arange(70 * u.MHz, 90 * u.MHz, 0.25 * u.MHz)  # Frequency vector
 f_vec = np.arange(65 * u.MHz, 95 * u.MHz, 0.5 * u.MHz)  # Frequency vector
 
 n_avg = 500_000  # number of averages

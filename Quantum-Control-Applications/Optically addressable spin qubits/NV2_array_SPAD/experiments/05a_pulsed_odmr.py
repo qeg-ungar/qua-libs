@@ -26,9 +26,9 @@ from qualang_tools.results.data_handler import DataHandler
 ##################
 # Parameters Definition
 #f_vec = np.arange(40 * u.MHz, 120 * u.MHz, 0.5 * u.MHz)  # Frequency vector
-f_vec = np.arange(65 * u.MHz,  95 * u.MHz, 0.5 * u.MHz)  # Frequency vector
+f_vec = np.arange(60 * u.MHz,  100 * u.MHz, 0.5 * u.MHz)  # Frequency vector
 
-n_avg = 100_000  # number of averages
+n_avg = 200_000  # number of averages
 
 # Data to save
 save_data_dict = {
@@ -102,7 +102,7 @@ qmm = QuantumMachinesManager(host=qop_ip, cluster_name=cluster_name, octave=octa
 #######################
 # Simulate or execute #
 #######################
-simulate = False
+simulate = True
 
 if simulate:
     # Simulates the QUA program for the specified duration
@@ -125,7 +125,7 @@ else:
     # Send the QUA program to the OPX, which compiles and executes it
     job = qm.execute(cw_odmr)
     # Get results from QUA program
-    results = fetching_tool(job, data_list=["iteration"], mode="live")
+    #results = fetching_tool(job, data_list=["iteration"], mode="live")
     results = fetching_tool(job, data_list=["counts", "counts_ref", "iteration"], mode="live")
     # Live plotting
     fig = plt.figure()

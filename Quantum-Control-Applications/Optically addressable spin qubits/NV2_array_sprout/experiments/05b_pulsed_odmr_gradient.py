@@ -31,7 +31,8 @@ f_vec = np.arange(72.5 * u.MHz,  87.5 * u.MHz, 0.2 * u.MHz)  # Frequency vector 
 #f_vec = np.arange(70 * u.MHz, 90 * u.MHz, 0.25 * u.MHz)  # Frequency vector #1 MHz Rabi
 #f_vec = np.arange(60 * u.MHz, 100 * u.MHz, 0.5 * u.MHz)  # Frequency vector
 #n_avg = 10_000_000  # number of averages
-n_avg = 500_000  # number of averages
+n_avg = 1_000_000  # number of averages
+#n_avg = 500_000  # number of averages
 
 # Determine reference readout during single laser pulse
 reference_wait = initialization_len_1 // 4 - 2 * meas_len_1 // 4 - 25  # in clock cycles
@@ -69,6 +70,7 @@ with program() as pulsed_odmr:
             play("x180" * amp(1), "NV")
             # Align for laser readout after the MW pulse
             align()
+            wait(wait_after_gradient * u.ns)
             play("laser_ON", "AOM2")
             measure("readout", "SPCM2", time_tagging.analog(times, meas_len_2, counts))
             save(counts, counts_st)  # save counts on stream
@@ -141,8 +143,8 @@ else:
         progress_counter(iteration, n_avg, start_time=results.get_start_time())
         # Plot data
         plt.cla()
-        plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts / 1000 / (meas_len_2 * 1e-9), label="signal")
-        plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts_ref / 1000 / (meas_len_2 * 1e-9), label="reference")
+        plt.plot((NV_LO_freq * 0 + f_vec) / u.MHz, counts / 1000 / (meas_len_2 * 1e-9), label="signal")
+        plt.plot((NV_LO_freq * 0 + f_vec) / u.MHz, counts_ref / 1000 / (meas_len_2 * 1e-9), label="reference")
         plt.xlabel("MW frequency [MHz]")
         plt.ylabel("Intensity [kcps]")
         plt.title("pulsed ODMR")

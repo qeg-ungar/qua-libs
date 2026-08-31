@@ -70,11 +70,10 @@ if weights_path.exists():
 #NV_LO_freq = 2.356 * u.GHz  #aligned [111] 152 G, gradient off
 #NV_LO_amp = -8  # in dBm
 
-NV_LO_freq = 1.805 * u.GHz  #aligned [-1-11] 352 G
-#NV_LO_freq = 1.800 * u.GHz  #aligned [-1-11] 352 G, gradient on
-#NV_LO_amp = -4  # in dBm #after adding power splitter for gradient
-NV_LO_amp = -8  # in dBm #with DC bias
-
+#NV_LO_freq = 1.805 * u.GHz  #aligned [-1-11] 352 G
+NV_LO_freq = 1.801 * u.GHz  #aligned [-1-11] 352 G, gradient on
+NV_LO_amp = -4  # in dBm #after adding power splitter for gradient
+#NV_LO_amp = -8  # in dBm #with DC bias
 
 sg384 = SG384Control("TCPIP0::18.25.11.6::5025::SOCKET")
 sg384.set_amplitude(NV_LO_amp)
@@ -92,14 +91,23 @@ octave_config = None
 sampling_rate = int(1e9)  # needed in some scripts
 
 # Frequencies
-NV_IF_freq = 79.42 * u.MHz  # NV IF frequency
+#NV_IF_freq = 80.58 * u.MHz  # NV IF frequency (right column gradient on) #2026-07-20\#759_pulsed_odmr_gradient_192515
+#NV_IF_freq = 79.40 * u.MHz  # NV IF frequency (middle column gradient on) # 2026-07-17\#741_pulsed_odmr_gradient_122125
+NV_IF_freq = 77.84 * u.MHz  # NV IF frequency (left column gradient on) #2026-07-30\#812_pulsed_odmr_gradient_122910
+#NV_IF_freq = 80.27 * u.MHz  # NV IF frequency (gradient off) 
+
+#For multiplexing experiments
+NV0_IF_freq = 77.84 * u.MHz  # NV0 IF frequency (left column gradient on) \2026-07-31\#815_pulsed_odmr_gradient_104623
+NV1_IF_freq = 79.38 * u.MHz  # NV1 IF frequency (middle column gradient on) #_799_pulsed_odmr_gradient_tracking_122452_20260725-191057
+NV2_IF_freq = 80.38 * u.MHz  # NV2 IF frequency (right column gradient on) 2026-07-31\#817_pulsed_odmr_gradient_111843
 
 # Pulses lengths
-initialization_len_1 = 3000 * u.ns  # NV ensemble calibrated with  2026-02-10\#119_calibrate_delays_185952
+initialization_len_1 = 5000 * u.ns  # NV ensemble calibrated with  2026-02-10\#119_calibrate_delays_185952
 meas_len_1 = 384 * u.ns  # 500 #calibrated at 0.48 mW with 2026-02-14\#218_calibrate_readout_163113
 long_meas_len_1 = 10_000 * u.ns  # 5_000 * u.ns
 
-initialization_len_2 = 3000 * u.ns #3_000 20260415
+#initialization_len_2 = 3000 * u.ns #3_000 20260415
+initialization_len_2 = 5000 * u.ns  # 20260710N15 polarization widefield illumination
 meas_len_2 = 484 * u.ns  # 500 #calibrated at 0.48 mW with 2026-03-03\#4_calibrate_readout_183901
 long_meas_len_2 = 10_000 * u.ns #5_000 #10_000
 
@@ -110,21 +118,38 @@ relaxation_time = 300 * u.ns
 wait_for_initialization = 5 * relaxation_time
 
 # MW parameters
-mw_amp_NV = 0.055  # in units of volts
+mw_amp_NV =   0.055  # in units of volts
 mw_len_NV = 500 * u.ns
 
-x180_amp_NV = 0.1365  # in units of volts #calibrate with 2026-06-26\#628_power_rabi_150630
-x180_len_NV = 148 * u.ns  # in units of ns 
+#x180_amp_NV = 0.1365  # in units of volts #calibrate with 2026-06-26\#628_power_rabi_150630 #with DC bias T
+#x180_amp_NV = 0.1124  # in units of volts #calibrate with 2026-07-07\#667_power_rabi_124024 #with power splitter
+#x180_amp_NV = (1000/148)*.0157 #gradient on
+#x180_amp_NV = (1000/148)*.0157*(0.5/0.53)*1.036 #20260727 see below
+#x180_len_NV = 148 * u.ns  # in units of ns 
 
-#x180_amp_NV = 0.1365*148/500  # in units of volts #calibrated with  2026-06-10\#590_power_rabi_165917
-#x180_len_NV = 500 * u.ns  # in units of ns
+#x180_amp_NV = (1000/300)*.0157*(0.5/0.53)*1.036 #gradient on
+#x180_len_NV = 300 * u.ns  # in units of ns 
 
-#x180_amp_NV = .5 * 0.0369  # in units of volts
+#x180_amp_NV = (1000/356)*.0157*(0.5/0.53)*1.036 #gradient on #20260729
+#x180_len_NV = 356 * u.ns  # in units of ns 
+
+#x180_amp_NV = 4*.0157*(0.5/0.53)*1.036  # in units of volts #calibrate with \2026-07-06\#656_power_rabi_gradient_162217 gradient on
+#x180_len_NV = 252 * u.ns  # in units of ns
+
+#x180_amp_NV = .1166*148/500  # in units of volts #calibrated with  2026-06-10\#590_power_rabi_165917
+x180_amp_NV = 2*.0157*(0.5/0.53)*1.036*(1.4/1.44)  # in units of volts #calibrate with \2026-07-06\#656_power_rabi_gradient_162217 gradient on #(1.4/1.44) from _963_time_rabi_gradient_tracking_125900_20260731-091011
+x180_len_NV = 500 * u.ns  # in units of ns
+
+#x180_amp_NV = .0174  # in units of volts #gradient off #2026-07-23\#719_power_rabi_145252
+#x180_amp_NV = .0157 * (0.5/0.53) * 1.036  # in units of volts #calibrate with \2026-07-06\#656_power_rabi_gradient_162217 gradient on #20260722 modified based on Rabi SPAD analysis
 #x180_len_NV = 1000 * u.ns  # in units of ns
 
 x90_amp_NV = x180_amp_NV / 2  # in units of volts
 x90_len_NV = x180_len_NV  # in units of ns
 
+x180_amp_NV0 = 1.333*.029*(49/50)  #1.33 MHz #in units of volts #calibrate with \processed\_843_multiplex_time_rabi_gradient_tracking_142155_20260727-122429
+x180_amp_NV1 = 0.5*x180_amp_NV  # in units of volts #calibrate with \2026-07-06\#656_power_rabi_gradient_162217 gradient on #20260722 modified based on Rabi SPAD analysis
+x180_amp_NV2 =  1.333*.012*(92/100) #1.33/2 MHz #in units of volts #calibrate with \processed\_843_multiplex_time_rabi_gradient_tracking_142155_20260727-122429
 # RF parameters
 rf_frequency = 10 * u.MHz
 rf_amp = 0.1
@@ -164,6 +189,8 @@ mw_switch_delay = 0 * u.ns #see one-note 'Pulsed gradient testing'
 
 wait_between_runs = 500 * u.ns  # calibrated 2026-02-10 with CW-ODMR ref
 
+wait_after_gradient = 3000 * u.ns #5000 * u.ns #20260722 changed from 2 us to 3 us based on scope
+
 config = {
     "controllers": {
         "con1": {
@@ -197,6 +224,60 @@ config = {
             "operations": {
                 "cw": "const_pulse",
                 "x180": "x180_pulse",
+                "x90": "x90_pulse",
+                "-x90": "-x90_pulse",
+                "-y90": "-y90_pulse",
+                "y90": "y90_pulse",
+                "y180": "y180_pulse",
+            },
+        },
+        "NV0": {
+            "mixInputs": {
+                "I": ("con1", 1),
+                "Q": ("con1", 2),
+                "lo_frequency": NV_LO_freq,
+                "mixer": "mixer_NV0",
+            },
+            "intermediate_frequency": NV0_IF_freq,
+            "operations": {
+                "cw": "const_pulse",
+                "x180": "x180_pulse_0",
+                "x90": "x90_pulse",
+                "-x90": "-x90_pulse",
+                "-y90": "-y90_pulse",
+                "y90": "y90_pulse",
+                "y180": "y180_pulse",
+            },
+        },
+        "NV1": {
+            "mixInputs": {
+                "I": ("con1", 1),
+                "Q": ("con1", 2),
+                "lo_frequency": NV_LO_freq,
+                "mixer": "mixer_NV1",
+            },
+            "intermediate_frequency": NV1_IF_freq,
+            "operations": {
+                "cw": "const_pulse",
+                "x180": "x180_pulse_1",
+                "x90": "x90_pulse",
+                "-x90": "-x90_pulse",
+                "-y90": "-y90_pulse",
+                "y90": "y90_pulse",
+                "y180": "y180_pulse",
+            },
+        },
+        "NV2": {
+            "mixInputs": {
+                "I": ("con1", 1),
+                "Q": ("con1", 2),
+                "lo_frequency": NV_LO_freq,
+                "mixer": "mixer_NV2",
+            },
+            "intermediate_frequency": NV2_IF_freq,
+            "operations": {
+                "cw": "const_pulse",
+                "x180": "x180_pulse_2",
                 "x90": "x90_pulse",
                 "-x90": "-x90_pulse",
                 "-y90": "-y90_pulse",
@@ -317,6 +398,21 @@ config = {
             "length": x180_len_NV,
             "waveforms": {"I": "x180_wf", "Q": "zero_wf"},
         },
+        "x180_pulse_0": {
+                    "operation": "control",
+                    "length": x180_len_NV,
+                    "waveforms": {"I": "x180_wf_0", "Q": "zero_wf"},
+                },
+        "x180_pulse_1": {
+                    "operation": "control",
+                    "length": x180_len_NV,
+                    "waveforms": {"I": "x180_wf_1", "Q": "zero_wf"},
+                },
+        "x180_pulse_2": {
+                    "operation": "control",
+                    "length": x180_len_NV,
+                    "waveforms": {"I": "x180_wf_2", "Q": "zero_wf"},
+                },
         "x90_pulse": {
             "operation": "control",
             "length": x90_len_NV,
@@ -399,6 +495,9 @@ config = {
         "x90_wf": {"type": "constant", "sample": x90_amp_NV},
         "minus_x90_wf": {"type": "constant", "sample": -x90_amp_NV},
         "zero_wf": {"type": "constant", "sample": 0.0},
+        "x180_wf_0": {"type": "constant", "sample": x180_amp_NV0},
+        "x180_wf_1": {"type": "constant", "sample": x180_amp_NV1},
+        "x180_wf_2": {"type": "constant", "sample": x180_amp_NV2},
     },
     "digital_waveforms": {
         "ON": {"samples": [(1, 0)]},  # [(on/off, ns)]
@@ -407,6 +506,15 @@ config = {
     "mixers": {
         "mixer_NV": [
             {"intermediate_frequency": NV_IF_freq, "lo_frequency": NV_LO_freq, "correction": IQ_imbalance(0.03, -0.05)},
+        ],
+        "mixer_NV0": [
+            {"intermediate_frequency": NV0_IF_freq, "lo_frequency": NV_LO_freq, "correction": IQ_imbalance(0.03, -0.05)},
+        ],
+        "mixer_NV1": [
+            {"intermediate_frequency": NV1_IF_freq, "lo_frequency": NV_LO_freq, "correction": IQ_imbalance(0.03, -0.05)},
+        ],
+        "mixer_NV2": [
+            {"intermediate_frequency": NV2_IF_freq, "lo_frequency": NV_LO_freq, "correction": IQ_imbalance(0.03, -0.05)},
         ],
     },
 }

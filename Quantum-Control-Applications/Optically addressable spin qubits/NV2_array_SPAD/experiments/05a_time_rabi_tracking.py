@@ -20,30 +20,21 @@ from qm import SimulationConfig
 import matplotlib.pyplot as plt
 from configuration import *
 from qualang_tools.results.data_handler import DataHandler
-import rpyc
-import threading
-import time
-
-QUDI_NAMESPACE_PORT = 18861
-QUDI_SWITCH_MODULE = "qm_switch_ni"
-QUDI_SWITCH_NAME = "One"
-QUDI_TRIGGER_STATE = "High"
 
 ##################
 #   Parameters   #
 ##################
 # Parameters Definition
-#f_vec = np.arange(40 * u.MHz, 120 * u.MHz, 0.5 * u.MHz)  # Frequency vector
-#f_vec = np.arange(65 * u.MHz, 95 * u.MHz, 0.5 * u.MHz)  # Frequency vector
-f_vec = np.arange(72.5 * u.MHz,  87.5 * u.MHz, 0.2 * u.MHz)  # Frequency vector #0.5 MHz Rabi
+t_vec = np.arange(4, 1000, 20)  # Pulse durations in clock cycles (4ns) #0.5 MHz Rabi
 
-#n_avg = 5_000_000  # number of averages
+#n_avg = 10_000_000  # number of averages
 n_avg = 500_000  # number of averages
+
 
 # Data to save
 save_data_dict = {
     "n_avg": n_avg,
-    "IF_frequencies": f_vec,
+    "pulse_durations": t_vec,
     "config": config,
 }
 
@@ -59,44 +50,22 @@ def get_prog(wait_trigger=wait_trigger):
         counts = declare(int)  # variable for number of counts
         counts_st = declare_stream()  # stream for counts
         counts_ref_st = declare_stream()  # stream for counts
-        f = declare(int)  # frequencies
+        t = declare(int)  # variable to sweep over the pulse duration
         n = declare(int)  # number of iterations
         n_st = declare_stream()  # stream for number of iterations
         if wait_trigger:
-            trigger_flag = declare(bool, value=False)
-            io1_val = declare(fixed)
-            with while_(~trigger_flag): #run sequence while waiting for trigger to keep setup stable
-                play("mw_switch_ON", "MW_switch")
-                play("x180" * amp(1), "NV")
-                align()
-                wait(wait_after_gradient * u.ns)
-                play("laser_ON", "AOM1") #dont trigger AOM2
-                #play("readout_SPAD", "SPAD")
-                align()
-                wait(SPAD_delay * u.ns)
-                play("x180" * amp(0), "NV")
-                align()
-                play("laser_ON", "AOM1")
-                #play("readout_SPAD", "SPAD")
-                align()
-                wait(SPAD_delay * u.ns)
-                assign(io1_val, IO1)
-                assign(trigger_flag, io1_val > 0)
+               wait_for_trigger("AOM2")
         align()
 
         with for_(n, 0, n < n_avg, n + 1):
-            with for_(*from_array(f, f_vec)):
-                # Update the frequency of the digital oscillator linked to the element "NV"
-                update_frequency("NV", f)
-                #turn on MW switch
-                play("mw_switch_ON", "MW_switch")
-                # Play the mw pulse...
-                play("x180" * amp(1), "NV")
+            with for_(*from_array(t, t_vec)):
+                # align all elements before starting the sequence
                 align()
-                wait(wait_after_gradient * u.ns)
+                # Play the mw pulse...
+                play("x180" * amp(1), "NV", duration=t)
+                align()
                 # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
                 play("laser_ON", "AOM2")
-                #measure("readout", "SPCM2", time_tagging.analog(times, meas_len_2, counts))
                 #wait(init_delay * u.ns, "SPAD")  # so readout don't catch the first part of spin reinitialization
                 # Measure and detect the photons on SPCM1
                 play("readout_SPAD", "SPAD")
@@ -107,11 +76,10 @@ def get_prog(wait_trigger=wait_trigger):
                 wait(SPAD_delay * u.ns)
 
                 # Play the mw pulse with zero amplitude...
-                play("x180" * amp(0), "NV")
+                play("x180" * amp(0), "NV", duration=t)
                 align()
                 # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
                 play("laser_ON", "AOM2")
-                #measure("readout", "SPCM2", time_tagging.analog(times, meas_len_2, counts))
                 #wait(init_delay * u.ns, "SPAD")  # so readout don't catch the first part of spin reinitialization
                 # Measure and detect the photons on SPCM1
                 play("readout_SPAD", "SPAD")
@@ -157,31 +125,6 @@ if simulate:
     # Visualize and save the waveform report
     waveform_report.create_plot(samples, plot=True, save_path=str(Path(__file__).resolve()))
 else:
-    def watch_qudi_trigger(qm, stop_event):
-        try:
-            protocol_config = {
-                'allow_all_attrs': True,
-                'allow_setattr': True,
-                'allow_delattr': True,
-                'allow_pickle': True,
-                'sync_request_timeout': 3600,
-            }
-            conn = rpyc.connect("localhost", QUDI_NAMESPACE_PORT, config=protocol_config)
-            try:
-                namespace = conn.root.get_namespace_dict()
-                switch = namespace[QUDI_SWITCH_MODULE]
-                print(f"[watch_qudi_trigger] connected, polling '{QUDI_SWITCH_MODULE}'...")
-                while not stop_event.is_set():
-                    if switch.get_state(QUDI_SWITCH_NAME) == QUDI_TRIGGER_STATE:
-                        print("[watch_qudi_trigger] trigger detected, setting IO1=True")
-                        qm.set_io1_value(True)
-                        break
-                    time.sleep(0.01)
-            finally:
-                conn.close()
-        except Exception as e:
-            print(f"[watch_qudi_trigger] ERROR: {e}")
-
     # Open the quantum machine
     qm = qmm.open_qm(config, close_other_machines=True)
 
@@ -207,21 +150,9 @@ else:
     run_count = 0
     while keep_running[0]:
         print(f"\n--- Starting run {run_count + 1} (waiting for trigger) ---")
-        qm.set_io1_value(False)  # reset from previous run
-
-        stop_event = threading.Event()
-        if wait_trigger:
-            t = threading.Thread(
-                target=watch_qudi_trigger,
-                args=(qm, stop_event),
-                daemon=True,
-            )
-            t.start()
-
         job = qm.execute(get_prog())
         current_job[0] = job
         results = fetching_tool(job, data_list=["iteration"], mode="live")
-        #results = fetching_tool(job, data_list=["counts", "counts_ref", "iteration"], mode="live")
 
         while results.is_processing() and keep_running[0]:
             # Fetch results
@@ -237,8 +168,6 @@ else:
             #plt.title("CW ODMR")
             #plt.legend()
             plt.pause(0.1)
-
-        stop_event.set()
 
         if not keep_running[0]:
             break

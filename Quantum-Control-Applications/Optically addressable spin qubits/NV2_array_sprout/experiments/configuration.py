@@ -66,17 +66,27 @@ if weights_path.exists():
 #NV_LO_freq = 1.820 * u.GHz  # aligned [111] 351 G #gradient on with DC bias on MW channel
 #NV_LO_amp = -16  # in dBm
 
-NV_LO_freq = 1.805 * u.GHz  #aligned [-1-11] 352 G
-#NV_LO_freq = 1.800 * u.GHz  #aligned [-1-11] 352 G, gradient on
+NV_LO_freq = 1.821 * u.GHz  #aligned [-1-11] 352 G, x = 12.4 mm, gradient off 20260831
+#NV_LO_freq = 1.801 * u.GHz  #aligned [-1-11] 352 G, gradient on 202607
 #NV_LO_amp = -4  # in dBm #after adding power splitter for gradient
-NV_LO_amp = -8  # in dBm #with DC bias tee for gradient drive
+#NV_LO_amp = -8  # in dBm #with DC bias tee for gradient drive
+#NV_LO_amp = -2  #
+#NV_LO_amp = -16  # -19 #in dBm low power CW ODMR 
+NV_LO_amp = -5  # - #in dBm high power CW ODMR 
 
 #NV_LO_freq = 2.356 * u.GHz  #aligned [-1-11] 152 G
-#NV_LO_freq = 2.74 * u.GHz   #misaligned orientations 152 G
-#NV_LO_amp = -4  # in dBm #after adding power splitter for gradient
-#NV_LO_amp = -8  # in dBm
+#NV_LO_freq = 2.740 * u.GHz  #other orientations 152 G
 
-#NV_LO_amp = -16  # -19 #in dBm low power CW ODMR 
+#NV_LO_freq = 2.350 * u.GHz  #aligned [111] 152 G
+#NV_LO_freq = 2.740 * u.GHz  #other orientations 152 G
+
+#NV_LO_freq = 2.500 * u.GHz  #[111] at x = 19 mm
+#NV_LO_freq = 2.435 * u.GHz  #
+#NV_LO_freq = 2.85 * u.GHz 
+
+#NV_LO_freq = 2.85 * u.GHz  
+#NV_LO_freq = 2.45 * u.GHz  
+#NV_LO_freq = 2.5 * u.GHz  
 
 
 sg384 = SG384Control("TCPIP0::18.25.11.6::5025::SOCKET")
@@ -95,8 +105,11 @@ octave_config = None
 sampling_rate = int(1e9)  # needed in some scripts
 
 # Frequencies
-NV_IF_freq = 80.34 * u.MHz  # NV IF frequency 
-#NV_IF_freq = 80 * u.MHz  # NV IF frequency
+#NV_IF_freq = 81.07 * u.MHz  # NV IF frequency (right column gradient on) 
+#NV_IF_freq = 79.72 * u.MHz  # NV IF frequency (middle column gradient on)
+#NV_IF_freq = 78.66 * u.MHz  # NV IF frequency (left column gradient on)
+#NV_IF_freq = 80.50 * u.MHz  # NV IF frequency (gradient off)
+NV_IF_freq = 80 * u.MHz  # NV IF frequency
 
 
 # Pulses lengths
@@ -116,15 +129,18 @@ wait_for_initialization = 5 * relaxation_time
 
 # MW parameters
 mw_amp_NV = 0.055  # in units of volts #calibrated with 2026-04-27\#317_power_rabi_141608
+#mw_amp_NV = 2*0.055  # in units of volts #calibrated with 2026-04-27\#317_power_rabi_141608
 mw_len_NV = 500 * u.ns
 
-x180_amp_NV = 0.1365  # in units of volts #calibrate with 2026-06-26\#628_power_rabi_150630
+#x180_amp_NV = 0.1365  # in units of volts #calibrate with 2026-06-26\#628_power_rabi_150630 #with DC bias T
+x180_amp_NV = 0.118  # in units of volts #calibrate with 2026-07-07\#667_power_rabi_124024 #with power splitter
 x180_len_NV = 148 * u.ns  # in units of ns 
 
-#x180_amp_NV = 0.0369  # in units of volts #calibrated with  2026-06-10\#590_power_rabi_165917
+#x180_amp_NV = .1166*148/500  # in units of volts #calibrated with  2026-06-10\#590_power_rabi_165917
 #x180_len_NV = 500 * u.ns  # in units of ns
 
-#x180_amp_NV = .5 * 0.0369  # in units of volts
+#x180_amp_NV = .0174  # in units of volts #calibrate with 2026-07-02\#638_power_rabi_140044
+#x180_amp_NV = .0157 * (0.5/0.53)  # in units of volts #calibrate with \2026-07-06\#656_power_rabi_gradient_162217 gradient on #20260722 modified based on Rabi SPAD analysis
 #x180_len_NV = 1000 * u.ns  # in units of ns
 
 x90_amp_NV = x180_amp_NV / 2  # in units of volts
@@ -167,10 +183,13 @@ mw_switch_delay = 0 * u.ns #see one-note 'Pulsed gradient testing'
 
 wait_between_runs = 500 * u.ns  # calibrated 2026-02-10 with CW-ODMR ref
 
-wait_between_runs_SPAD = (20_800 - 3_000) * u.ns  # testing gradient switch
+#wait_between_runs_SPAD = (20_800 - 3_000) * u.ns  # testing gradient switch
 #wait_between_runs_SPAD = (5_000) * u.ns  # testing gradient switch
 #wait_between_runs_SPAD = (500) * u.ns  # testing gradient switch
+SPAD_HIT = 20_800 * u.ns  # hardware integration time
+wait_between_runs_SPAD = SPAD_HIT - initialization_len_2  # 20.8 us min repetition time - 3 us laser pulse
 
+wait_after_gradient = 3000 * u.ns   #20260722 changed from 2 us to 3 us based on scope
 
 config = {
     "controllers": {

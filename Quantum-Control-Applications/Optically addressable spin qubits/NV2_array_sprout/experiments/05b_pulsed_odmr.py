@@ -29,8 +29,8 @@ from qualang_tools.results.data_handler import DataHandler
 # Parameters Definition
 #f_vec = np.arange(72.5 * u.MHz,  87.5 * u.MHz, 0.2 * u.MHz)  # Frequency vector #0.5 MHz Rabi
 #f_vec = np.arange(70 * u.MHz, 90 * u.MHz, 0.25 * u.MHz)  # Frequency vector #1 MHz Rabi
-f_vec = np.arange(65 * u.MHz, 95 * u.MHz, 0.5 * u.MHz)  # Frequency vector
-n_avg = 300_000  # number of averages
+f_vec = np.arange(60 * u.MHz, 100 * u.MHz, 0.5 * u.MHz)  # Frequency vector
+n_avg = 1_000_000  # number of averages
 
 # Determine reference readout during single laser pulse
 reference_wait = initialization_len_1 // 4 - 2 * meas_len_1 // 4 - 25  # in clock cycles
@@ -138,8 +138,8 @@ else:
         progress_counter(iteration, n_avg, start_time=results.get_start_time())
         # Plot data
         plt.cla()
-        plt.plot((NV_LO_freq * 0 + f_vec) / u.MHz, counts / 1000 / (meas_len_2 * 1e-9), label="signal")
-        plt.plot((NV_LO_freq * 0 + f_vec) / u.MHz, counts_ref / 1000 / (meas_len_2 * 1e-9), label="reference")
+        plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts / 1000 / (meas_len_2 * 1e-9), label="signal")
+        plt.plot((NV_LO_freq * 1 + f_vec) / u.MHz, counts_ref / 1000 / (meas_len_2 * 1e-9), label="reference")
         plt.xlabel("MW frequency [MHz]")
         plt.ylabel("Intensity [kcps]")
         plt.title("pulsed ODMR")

@@ -33,17 +33,24 @@ QUDI_TRIGGER_STATE = "High"
 #   Parameters   #
 ##################
 # Parameters Definition
-#f_vec = np.arange(40 * u.MHz, 120 * u.MHz, 0.5 * u.MHz)  # Frequency vector
-#f_vec = np.arange(65 * u.MHz, 95 * u.MHz, 0.5 * u.MHz)  # Frequency vector
-f_vec = np.arange(72.5 * u.MHz,  87.5 * u.MHz, 0.2 * u.MHz)  # Frequency vector #0.5 MHz Rabi
+#t_vec = np.arange(4, 1500, 30)  # Pulse durations in clock cycles (4ns) #0.5 MHz Rabi
+t_vec = np.arange(4, 500, 15)  # Pulse durations in clock cycles (4ns) #1.67 MHz Rabi
 
-#n_avg = 5_000_000  # number of averages
-n_avg = 500_000  # number of averages
+mw_switch_buffer = 250 #in clock cycles (1 us)
+mw_switch_len_idle = np.max(t_vec)/2 + mw_switch_buffer #in clock cycles
+
+#n_avg = 10_000_000  # number of averages
+n_avg = 600_000  # number of averages
+#n_avg = 500_000  # number of averages
+
+# Determine reference readout during single laser pulse
+reference_wait = initialization_len_1 // 4 - 2 * meas_len_1 // 4 - 25  # in clock cycles
+reference_readout = reference_wait >= 4
 
 # Data to save
 save_data_dict = {
     "n_avg": n_avg,
-    "IF_frequencies": f_vec,
+    "t_vec": t_vec,
     "config": config,
 }
 
@@ -59,21 +66,22 @@ def get_prog(wait_trigger=wait_trigger):
         counts = declare(int)  # variable for number of counts
         counts_st = declare_stream()  # stream for counts
         counts_ref_st = declare_stream()  # stream for counts
-        f = declare(int)  # frequencies
+        t = declare(int)  # variable to sweep over the pulse duration
         n = declare(int)  # number of iterations
         n_st = declare_stream()  # stream for number of iterations
         if wait_trigger:
             trigger_flag = declare(bool, value=False)
             io1_val = declare(fixed)
             with while_(~trigger_flag): #run sequence while waiting for trigger to keep setup stable
-                play("mw_switch_ON", "MW_switch")
+                play("mw_switch_ON", "MW_switch", duration = mw_switch_len_idle)
                 play("x180" * amp(1), "NV")
                 align()
                 wait(wait_after_gradient * u.ns)
                 play("laser_ON", "AOM1") #dont trigger AOM2
                 #play("readout_SPAD", "SPAD")
                 align()
-                wait(SPAD_delay * u.ns)
+                wait(2 * SPAD_delay * u.ns) #to keep duty cycle approx the same as ODMR
+                #wait(mw_switch_len) #to keep duty cycle approx the same as ODMR
                 play("x180" * amp(0), "NV")
                 align()
                 play("laser_ON", "AOM1")
@@ -85,13 +93,12 @@ def get_prog(wait_trigger=wait_trigger):
         align()
 
         with for_(n, 0, n < n_avg, n + 1):
-            with for_(*from_array(f, f_vec)):
-                # Update the frequency of the digital oscillator linked to the element "NV"
-                update_frequency("NV", f)
+            with for_(*from_array(t, t_vec)):
+                # Update the duration of the mw pulse
                 #turn on MW switch
-                play("mw_switch_ON", "MW_switch")
+                play("mw_switch_ON", "MW_switch", duration = t + mw_switch_buffer)
                 # Play the mw pulse...
-                play("x180" * amp(1), "NV")
+                play("x180" * amp(1), "NV", duration=t)
                 align()
                 wait(wait_after_gradient * u.ns)
                 # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
@@ -104,10 +111,11 @@ def get_prog(wait_trigger=wait_trigger):
 
                 #save(counts, counts_st)  # save counts on stream
                 align()
-                wait(SPAD_delay * u.ns)
+                wait(2 * SPAD_delay * u.ns) #to keep duty cycle approx the same as ODMR
+                #wait(mw_switch_len) #to keep duty cycle approx the same as ODMR
 
                 # Play the mw pulse with zero amplitude...
-                play("x180" * amp(0), "NV")
+                play("x180" * amp(0), "NV", duration=t)
                 align()
                 # ... and the laser pulse simultaneously (the laser pulse is delayed by 'laser_delay_1')
                 play("laser_ON", "AOM2")

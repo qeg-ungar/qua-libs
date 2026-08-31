@@ -62,11 +62,15 @@ with program() as power_rabi:
     with for_(n, 0, n < n_avg, n + 1):
         with for_(*from_array(a, a_vec)):
             # Play the Rabi pulse with varying amplitude
-            play("x180" * amp(a), "NV")  # 'a' is a pre-factor to the amplitude defined in the config ("mw_amp_NV")
+            #play("x180" * amp(a), "NV")  # 'a' is a pre-factor to the amplitude defined in the config ("mw_amp_NV")
+            play("x180" * amp(a), "NV0")  # 'a' is a pre-factor to the amplitude defined in the config ("mw_amp_NV")
+            play("x180" * amp(a), "NV1")  # 'a' is a pre-factor to the amplitude defined in the config ("mw_amp_NV")
+            play("x180" * amp(a), "NV2")  # 'a' is a pre-factor to the amplitude defined in the config ("mw_amp_NV")
+
             align()  # Play the laser pulse after the mw pulse
-            play("laser_ON", "AOM1")
+            play("laser_ON", "AOM2")
             # Measure and detect the photons on SPCM1
-            measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
+            measure("readout", "SPCM2", time_tagging.analog(times, meas_len_1, counts))
             save(counts, counts_st)  # save counts
             # Measure reference photon counts at end of laser pulse
             # if reference_readout:
@@ -79,9 +83,9 @@ with program() as power_rabi:
             
             play("x180" * amp(0), "NV")
             align()  # Play the laser pulse after the mw pulse
-            play("laser_ON", "AOM1")
-            # Measure and detect the photons on SPCM1
-            measure("readout", "SPCM1", time_tagging.analog(times, meas_len_1, counts))
+            play("laser_ON", "AOM2")
+            # Measure and detect the photons on SPCM2
+            measure("readout", "SPCM2", time_tagging.analog(times, meas_len_1, counts))
             save(counts, counts_ref_st)
 
             wait(wait_between_runs * u.ns)  # wait in between iterations
