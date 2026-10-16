@@ -18,7 +18,7 @@ from qualang_tools.results.data_handler import DataHandler
 # Parameters Definition
 total_integration_time = int(100 * u.ms)  # Total duration of the measurement
 # Duration of a single chunk. Needed because the OPX cannot measure for more than ~1ms
-single_integration_time_ns = int(500 * u.us)  # 500us
+single_integration_time_ns = int(40 * u.us)  #500 500us
 single_integration_time_cycles = single_integration_time_ns // 4
 # Number of chunks to get the total measurement time
 n_count = int(total_integration_time / single_integration_time_ns)
@@ -38,9 +38,9 @@ with program() as counter:
         # Loop over the chunks to measure for the total integration time
         with for_(n, 0, n < n_count, n + 1):
             # Play the laser pulse...
-            play("laser_ON", "AOM1", duration=single_integration_time_cycles)
+            play("laser_ON", "AOM2", duration=single_integration_time_cycles)
             # ... while measuring the events from the SPCM
-            measure("readout", "SPCM1", time_tagging.analog(times, single_integration_time_ns, counts))
+            measure("readout", "SPCM2", time_tagging.analog(times, single_integration_time_ns, counts))
             # Increment the received counts
             assign(total_counts, total_counts + counts)
         # Save the counts
@@ -93,7 +93,7 @@ else:
         new_idx = counts_handle.count_so_far()
         new_counts = counts_handle.fetch(slice(last_idx, new_idx))
         last_idx = new_idx
-        counts.extend(new_counts["value"] / total_integration_time / 1000)
+        counts.extend(new_counts["value"] / total_integration_time / 1e-6)  # Convert counts to kcps
         time.extend(new_counts["timestamp"] / u.s)  # Convert timestamps to seconds
         plt.cla()
         if len(time) > 50:
@@ -105,3 +105,5 @@ else:
         plt.ylabel("Counts [kcps]")
         plt.title("Counter")
         plt.pause(0.1)
+    #turn off SRS output
+    sg384.ntype_on(0)

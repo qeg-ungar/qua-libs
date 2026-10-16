@@ -113,8 +113,8 @@ sampling_rate = int(1e9)  # needed in some scripts
 #NV_IF_freq = 79.72 * u.MHz  # NV IF frequency (middle column gradient on)
 #NV_IF_freq = 78.66 * u.MHz  # NV IF frequency (left column gradient on)
 #NV_IF_freq = 80.13 * u.MHz  # NV IF frequency (gradient off)
-#NV_IF_freq = 80 * u.MHz  # NV IF frequency
-NV_IF_freq = 70.71 * u.MHz #single NV at site L #20261008
+NV_IF_freq = 80 * u.MHz  # NV IF frequency
+#NV_IF_freq = 70.71 * u.MHz #single NV at site L #20261008
 
 # Pulses lengths
 initialization_len_1 = 3000 * u.ns  # NV ensemble calibrated with  2026-02-10\#119_calibrate_delays_185952
@@ -420,7 +420,7 @@ config = {
     },
     "mixers": {
         "mixer_NV": [
-            {"intermediate_frequency": NV_IF_freq, "lo_frequency": NV_LO_freq, "correction": IQ_imbalance(0.03, 0.05)},
+            {"intermediate_frequency": NV_IF_freq, "lo_frequency": NV_LO_freq, "correction": IQ_imbalance(0.015, -0.04)}, #Calibrated 2026-10-14
         ],
     },
 }
