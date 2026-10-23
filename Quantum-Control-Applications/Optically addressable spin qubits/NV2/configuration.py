@@ -81,7 +81,7 @@ NV_LO_amp = -5  # - #in dBm high power CW ODMR
 #NV_LO_freq = 2.740 * u.GHz  #other orientations 152 G
 
 #NV_LO_freq = 2.590 * u.GHz  #aligned [-1-11] max Z, at x = 50 mm
-NV_LO_freq = 2.650 * u.GHz #misaligned at max Z, at x = 50 mm
+NV_LO_freq = 2.48 * u.GHz #misaligned at max Z, at x = 50 mm
 #NV_LO_freq = 2.700 * u.GHz
 
 #NV_LO_freq = 2.500 * u.GHz  #[111] at x = 19 mm
